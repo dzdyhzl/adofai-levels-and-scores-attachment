@@ -500,7 +500,9 @@
 
   <script>
     const PAGE_SIZE = 20;
-    const DEFAULT_BASE = "https://api.tuforums.com";
+    const LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", "[::1]"];
+    const DIRECT_API_BASE = "https://api.tuforums.com";
+    const DEFAULT_BASE = LOCAL_HOSTS.includes(location.hostname) ? DIRECT_API_BASE : "";
 
     const pageTitle = document.getElementById("pageTitle");
     const statusPanel = document.getElementById("statusPanel");
@@ -919,7 +921,7 @@
         statsPanel.hidden = false;
         passesPanel.hidden = false;
       } catch (error) {
-        statusEl.textContent = `加载失败：${error.message}。请确保通过本地 HTTP 服务器打开本页面。`;
+        statusEl.textContent = `加载失败：${error.message}。线上部署请确认 functions/ 代理已生效，本地请通过 HTTP 服务器打开。`;
         statusEl.classList.add("error");
       }
     }

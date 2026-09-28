@@ -44,6 +44,8 @@ python "Accuracy Calculator.py"
 .
 ├── index.html               # 谱面搜索页
 ├── level.html               # 谱面详情页
+├── functions/
+│   └── v2/[[path]].js       # Cloudflare Pages Functions 代理（转发 /v2/* 到 TUF API）
 ├── Accuracy Calculator.py   # XAcc 计算器（Python + easygui）
 ├── TUF计算知识整理.md        # 分数计算知识整理
 ├── API doc.json             # TUF OpenAPI 文档（OpenAPI 3.0.3）
@@ -52,13 +54,25 @@ python "Accuracy Calculator.py"
 
 ## 使用方法
 
+### 本地运行
+
 页面需通过本地 HTTP 服务器打开（直接双击以 `file://` 打开会被浏览器 CORS 拦截）：
 
 ```powershell
 python -m http.server 8000
 ```
 
-然后访问 <http://localhost:8000/index.html>。
+然后访问 <http://localhost:8000/index.html>。本地环境会直接请求 `https://api.tuforums.com`（该 API 允许 localhost 跨域）。
+
+### 部署到 Cloudflare Pages
+
+TUF API 的 CORS 仅允许 `https://tuforums.com` 与 localhost，其他域名（如 `*.pages.dev`）会被浏览器拦截。因此仓库内置了 Pages Functions 代理：
+
+- `functions/v2/[[path]].js` 将同源的 `/v2/*` 请求转发到 `https://api.tuforums.com`
+- 页面在非 localhost 环境自动改用同源地址，并由代理函数返回响应
+
+将仓库连接到 Cloudflare Pages（构建命令留空，输出目录为根目录）即可，Functions 会随站点自动部署。
+
 
 ## 使用的 TUF 接口
 

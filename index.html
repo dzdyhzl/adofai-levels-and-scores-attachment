@@ -542,7 +542,9 @@
   </main>
 
   <script>
-    const DEFAULT_BASE = "https://api.tuforums.com";
+    const LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", "[::1]"];
+    const DIRECT_API_BASE = "https://api.tuforums.com";
+    const DEFAULT_BASE = LOCAL_HOSTS.includes(location.hostname) ? DIRECT_API_BASE : "";
     const SEARCH_LIMIT = 20;
 
     const API_BASE = DEFAULT_BASE.replace(/\/+$/, "");
@@ -1034,7 +1036,7 @@
         resultEl.hidden = false;
       } catch (error) {
         resultEl.hidden = true;
-        statusEl.textContent = `查询失败：${error.message}。请确保通过本地 HTTP 服务器打开本页面。`;
+        statusEl.textContent = `查询失败：${error.message}。线上部署请确认 functions/ 代理已生效，本地请通过 HTTP 服务器打开。`;
         statusEl.classList.add("error");
       } finally {
         queryBtn.disabled = false;
@@ -1080,7 +1082,7 @@
           resultEl.hidden = false;
         } catch (error) {
           resultEl.hidden = true;
-          statusEl.textContent = `查询失败：${error.message}。请确保通过本地 HTTP 服务器打开本页面。`;
+          statusEl.textContent = `查询失败：${error.message}。线上部署请确认 functions/ 代理已生效，本地请通过 HTTP 服务器打开。`;
           statusEl.classList.add("error");
         } finally {
           queryBtn.disabled = false;
