@@ -1,0 +1,1156 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TUF 谱面查询</title>
+  <style>
+    :root {
+      --bg: #f3f5fa;
+      --panel: #ffffff;
+      --border: #e6e9f1;
+      --text: #1f2430;
+      --muted: #6b7280;
+      --faint: #8a93a3;
+      --accent: #3b6ef6;
+      --accent-dark: #2f5ce0;
+      --accent-soft: #eef2ff;
+      --danger: #d14343;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(1100px 480px at 50% -10%, #e8eefc 0%, var(--bg) 55%);
+      min-height: 100vh;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 36px 20px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brandMark {
+      width: 40px;
+      height: 40px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, #3b6ef6, #7a5cf0);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: .5px;
+      box-shadow: 0 8px 18px -8px rgba(59, 110, 246, .8);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: .2px;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      font-size: 12.5px;
+      color: var(--faint);
+    }
+
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 22px 20px 48px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 10px 28px -22px rgba(16, 24, 40, .35);
+    }
+
+    .panelTitle {
+      margin: 0 0 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #38404e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panelTitle::before {
+      content: "";
+      width: 4px;
+      height: 14px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #3b6ef6, #7a5cf0);
+    }
+
+    .row {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 12.5px;
+      color: #5b6472;
+    }
+
+    input,
+    select {
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid #d5dae4;
+      border-radius: 9px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: #fff;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    input::placeholder {
+      color: #a6adba;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: #7aa2ff;
+      box-shadow: 0 0 0 3px rgba(59, 110, 246, .14);
+    }
+
+    .filterGroup + .filterGroup {
+      margin-top: 18px;
+    }
+
+    .filterGroup h3 {
+      margin: 0 0 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #6b7280;
+      letter-spacing: .2px;
+    }
+
+    .filterGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .timeGrid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid #dde2ec;
+      border-radius: 999px;
+      background: #f8fafc;
+      font-size: 13px;
+      color: #4b5563;
+      cursor: pointer;
+      user-select: none;
+      transition: border-color .15s ease, background .15s ease, color .15s ease;
+    }
+
+    .check input {
+      width: 15px;
+      height: 15px;
+      padding: 0;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .check:has(input:checked) {
+      border-color: #9db6ff;
+      background: var(--accent-soft);
+      color: #2b4bbf;
+    }
+
+    button {
+      height: 40px;
+      padding: 0 22px;
+      border: 0;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #4a7bf8, #3b6ef6);
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 8px 18px -10px rgba(59, 110, 246, .9);
+      transition: background .15s ease, transform .1s ease, box-shadow .15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: linear-gradient(180deg, #3f70f0, var(--accent-dark));
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    #queryBtn {
+      margin-top: 16px;
+    }
+
+    #status {
+      margin: 12px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 18px;
+    }
+
+    #status.error {
+      color: var(--danger);
+    }
+
+    #resultMeta {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .card {
+      background: #fbfcfe;
+      border: 1px solid #e8ebf3;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-top: 14px;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .card:hover {
+      border-color: #d8def0;
+      box-shadow: 0 12px 30px -22px rgba(16, 24, 40, .5);
+    }
+
+    .card.clickable {
+      cursor: pointer;
+    }
+
+    #resultCards .card:first-child {
+      margin-top: 0;
+    }
+
+    dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      gap: 8px 14px;
+      font-size: 14px;
+    }
+
+    dt {
+      color: #7a8290;
+    }
+
+    dd {
+      margin: 0;
+      word-break: break-word;
+    }
+
+    .ratingList {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+      font-size: 14px;
+    }
+
+    .cdnRow {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cdnBox {
+      height: 30px;
+      padding: 0 14px;
+      border: 1px solid #c7d2fe;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: #3455d0;
+      font-size: 12.5px;
+      box-shadow: none;
+    }
+
+    .cdnBox:hover:not(:disabled) {
+      background: #e0e7ff;
+    }
+
+    .cdnStatus {
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .cdnStatus.error {
+      color: var(--danger);
+    }
+
+    details {
+      margin-top: 14px;
+      font-size: 13px;
+    }
+
+    summary {
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    summary:hover {
+      color: #38404e;
+    }
+
+    pre {
+      overflow: auto;
+      max-height: 320px;
+      background: #f2f4f8;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+    }
+
+    #pager {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #pager button {
+      height: 36px;
+      padding: 0 18px;
+      background: #fff;
+      color: #3455d0;
+      border: 1px solid #c7d2fe;
+      box-shadow: none;
+    }
+
+    #pager button:hover:not(:disabled) {
+      background: var(--accent-soft);
+    }
+
+    #pageInfo {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .hint {
+      margin: 14px 0 0;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--faint);
+    }
+
+    @media (max-width: 600px) {
+      header {
+        padding-top: 24px;
+      }
+
+      .row,
+      .filterGrid {
+        grid-template-columns: 1fr;
+      }
+
+      dl {
+        grid-template-columns: 92px 1fr;
+      }
+
+      .panel {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <div class="brandMark">TUF</div>
+      <div>
+        <h1>TUF 谱面查询</h1>
+        <p class="subtitle">The Universal Forums · 谱面检索与信息查询</p>
+      </div>
+    </div>
+  </header>
+  <main>
+    <section class="panel">
+      <h2 class="panelTitle">查询条件</h2>
+      <div class="stack">
+        <div class="row">
+          <label>谱面 ID
+            <input id="levelId" placeholder="精确 ID（可选）">
+          </label>
+          <label>谱面名
+            <input id="songName" placeholder="歌名（可选）">
+            <select id="matchMode">
+              <option value="fuzzy">模糊匹配（忽略空格与标点）</option>
+              <option value="exact">精确匹配（空格标点须正确，可截断）</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <button id="queryBtn">查询</button>
+      <p id="status"></p>
+    </section>
+
+    <section class="panel" id="filterPanel" hidden>
+      <h2 class="panelTitle">筛选与排序</h2>
+
+      <div class="filterGroup">
+        <h3>时长范围（时 / 分 / 秒，可只填一侧或部分，空项按 0 计）</h3>
+        <div class="filterGrid timeGrid">
+          <label>下限（时）
+            <input id="minHour" type="number" min="0" placeholder="时">
+          </label>
+          <label>下限（分）
+            <input id="minMin" type="number" min="0" placeholder="分">
+          </label>
+          <label>下限（秒）
+            <input id="minSec" type="number" min="0" placeholder="秒">
+          </label>
+          <label>上限（时）
+            <input id="maxHour" type="number" min="0" placeholder="时">
+          </label>
+          <label>上限（分）
+            <input id="maxMin" type="number" min="0" placeholder="分">
+          </label>
+          <label>上限（秒）
+            <input id="maxSec" type="number" min="0" placeholder="秒">
+          </label>
+        </div>
+      </div>
+
+      <div class="filterGroup">
+        <h3>总轨道数范围</h3>
+        <div class="filterGrid">
+          <label>下限
+            <input id="minTiles" type="number" min="0" placeholder="最小">
+          </label>
+          <label>上限
+            <input id="maxTiles" type="number" min="0" placeholder="最大">
+          </label>
+        </div>
+      </div>
+
+      <div class="filterGroup">
+        <h3>谱面 ID 范围</h3>
+        <div class="filterGrid">
+          <label>下限
+            <input id="minId" type="number" min="0" placeholder="最小 ID">
+          </label>
+          <label>上限
+            <input id="maxId" type="number" min="0" placeholder="最大 ID">
+          </label>
+        </div>
+      </div>
+
+      <div class="filterGroup">
+        <h3>特殊难度（勾选才展示）</h3>
+        <div class="checks">
+          <label class="check"><input id="diffUnranked" type="checkbox"> Unranked</label>
+          <label class="check"><input id="diffImpossible" type="checkbox"> Impossible</label>
+          <label class="check"><input id="diffCensored" type="checkbox"> Censored</label>
+          <label class="check"><input id="diffP0" type="checkbox"> P0</label>
+        </div>
+      </div>
+
+      <div class="filterGroup">
+        <h3>排序（优先级：谱面 ID → 时长 → 总轨道数）</h3>
+        <div class="filterGrid">
+          <label>谱面 ID 排序
+            <select id="sortId">
+              <option value="">不排序</option>
+              <option value="asc" selected>升序</option>
+              <option value="desc">降序</option>
+            </select>
+          </label>
+          <label>时长排序
+            <select id="sortTime">
+              <option value="">不排序</option>
+              <option value="asc">升序</option>
+              <option value="desc">降序</option>
+            </select>
+          </label>
+          <label>总轨道数排序
+            <select id="sortTiles">
+              <option value="">不排序</option>
+              <option value="asc">升序</option>
+              <option value="desc">降序</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <p class="hint">模糊匹配按空格分词（标点忽略），每个词需作为连续片段出现在歌名中，词之间可省略其他内容（如 hello bpm → Hello (BPM)）；精确匹配须保持原空格与标点，但可只输入一部分（如 Hello (BPM）。未勾选的特殊难度在本页内隐藏（不影响服务端分页总数）。</p>
+    </section>
+
+    <section class="panel" id="result" hidden>
+      <h2 class="panelTitle">搜索结果</h2>
+      <p id="resultMeta"></p>
+      <div id="resultCards"></div>
+      <div id="pager" hidden>
+        <button id="prevBtn">上一页</button>
+        <span id="pageInfo"></span>
+        <button id="nextBtn">下一页</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const DEFAULT_BASE = "https://api.tuforums.com";
+    const SEARCH_LIMIT = 20;
+
+    const API_BASE = DEFAULT_BASE.replace(/\/+$/, "");
+
+    const idInput = document.getElementById("levelId");
+    const songInput = document.getElementById("songName");
+    const matchModeInput = document.getElementById("matchMode");
+    const queryBtn = document.getElementById("queryBtn");
+    const statusEl = document.getElementById("status");
+    const resultEl = document.getElementById("result");
+    const resultMeta = document.getElementById("resultMeta");
+    const resultCards = document.getElementById("resultCards");
+    const filterPanel = document.getElementById("filterPanel");
+    const minMinInput = document.getElementById("minMin");
+    const minSecInput = document.getElementById("minSec");
+    const maxMinInput = document.getElementById("maxMin");
+    const maxSecInput = document.getElementById("maxSec");
+    const minHourInput = document.getElementById("minHour");
+    const maxHourInput = document.getElementById("maxHour");
+    const minTilesInput = document.getElementById("minTiles");
+    const maxTilesInput = document.getElementById("maxTiles");
+    const minIdInput = document.getElementById("minId");
+    const maxIdInput = document.getElementById("maxId");
+    const sortIdInput = document.getElementById("sortId");
+    const sortTimeInput = document.getElementById("sortTime");
+    const sortTilesInput = document.getElementById("sortTiles");
+    const diffUnrankedInput = document.getElementById("diffUnranked");
+    const diffImpossibleInput = document.getElementById("diffImpossible");
+    const diffCensoredInput = document.getElementById("diffCensored");
+    const diffP0Input = document.getElementById("diffP0");
+    const pager = document.getElementById("pager");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const pageInfo = document.getElementById("pageInfo");
+
+    let searchState = null;
+    let filterTimer = null;
+
+    function toText(value) {
+      if (value == null) return null;
+      if (Array.isArray(value)) {
+        const parts = value.map(toText).filter((part) => part != null && part !== "");
+        return parts.length ? parts.join(", ") : null;
+      }
+      if (typeof value === "object") {
+        const inner = value.name ?? value.displayName ?? value.title;
+        return inner == null ? null : String(inner);
+      }
+      const text = String(value);
+      return text.trim() === "" ? null : text;
+    }
+
+    function normalizeText(value) {
+      return String(value ?? "")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, "");
+    }
+
+    function formatDuration(seconds) {
+      const total = Math.floor(Number(seconds));
+      if (!Number.isFinite(total) || total <= 0) return null;
+      const minutes = Math.floor(total / 60);
+      const rest = total % 60;
+      return `${minutes}:${String(rest).padStart(2, "0")}`;
+    }
+
+    const difficultiesCache = new Map();
+
+    async function loadDifficulties(base) {
+      if (difficultiesCache.has(base)) return difficultiesCache.get(base);
+      const promise = fetch(`${base}/v2/database/difficulties`, {
+        credentials: "include",
+        headers: { Accept: "application/json" }
+      })
+        .then((res) => (res.ok ? res.json() : []))
+        .catch(() => []);
+      difficultiesCache.set(base, promise);
+      return promise;
+    }
+
+    async function resolveDifficulty(base, level) {
+      if (level.difficulty) return level.difficulty;
+      const diffId = level.diffId ?? level.difficultyId;
+      if (diffId == null) return null;
+      const list = await loadDifficulties(base);
+      return (
+        (Array.isArray(list) ? list : []).find(
+          (item) => String(item.id) === String(diffId)
+        ) ?? null
+      );
+    }
+
+    async function loadRatingDetails(base, levelId) {
+      if (levelId == null) return [];
+      try {
+        const res = await fetch(`${base}/v2/database/levels/${levelId}/ratings`, {
+          credentials: "include",
+          headers: { Accept: "application/json" }
+        });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data?.details) ? data.details : [];
+      } catch {
+        return [];
+      }
+    }
+
+    async function loadCdnData(base, levelId) {
+      if (levelId == null) return null;
+      try {
+        const res = await fetch(`${base}/v2/database/levels/${levelId}/cdnData`, {
+          credentials: "include",
+          headers: { Accept: "application/json" }
+        });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
+    }
+
+    function extractFields(level, difficulty) {
+      const credits = Array.isArray(level.levelCredits) ? level.levelCredits : [];
+      const charters = credits
+        .filter((credit) => String(credit.role).toLowerCase() === "charter")
+        .map((credit) => toText(credit.creator) || toText(credit.creatorId))
+        .filter(Boolean);
+
+      const name = [toText(level.song), toText(level.suffix)].filter(Boolean).join(" ");
+      const durationMs = Number(level.levelLengthInMs);
+
+      return [
+        ["谱面 ID", toText(level.id)],
+        ["谱面名", name || null],
+        ["曲师", toText(level.artist) ?? toText(level.artists)],
+        ["谱师", charters.length ? charters.join(", ") : toText(level.creator)],
+        ["初始 BPM", toText(level.bpm)],
+        ["总轨道数", toText(level.tilecount ?? level.tileCount)],
+        ["歌曲时长", Number.isFinite(durationMs) && durationMs > 0 ? formatDuration(durationMs / 1000) : null],
+        ["评级", toText(difficulty?.name)],
+        ["谱面底分", toText(difficulty?.baseScore ?? level.baseScore)]
+      ];
+    }
+
+    function createRatingPanel(base, level) {
+      const panel = document.createElement("details");
+      const summary = document.createElement("summary");
+      summary.textContent = "评级明细";
+      const list = document.createElement("ul");
+      list.className = "ratingList";
+      panel.append(summary, list);
+
+      let loaded = false;
+      panel.addEventListener("toggle", async () => {
+        if (!panel.open || loaded || level.id == null) return;
+        loaded = true;
+        list.innerHTML = "";
+        const loading = document.createElement("li");
+        loading.textContent = "加载中…";
+        list.append(loading);
+        const details = await loadRatingDetails(base, level.id);
+        list.innerHTML = "";
+        if (!details.length) {
+          const empty = document.createElement("li");
+          empty.textContent = "无评级记录";
+          list.append(empty);
+          return;
+        }
+        for (const detail of details) {
+          const item = document.createElement("li");
+          const user = toText(detail.user) || "未知用户";
+          const rating = toText(detail.rating) || "?";
+          const comment = toText(detail.comment);
+          item.textContent = comment ? `${user}：${rating}（${comment}）` : `${user}：${rating}`;
+          list.append(item);
+        }
+      });
+
+      return panel;
+    }
+
+    function createCdnRow(base, level) {
+      const row = document.createElement("div");
+      row.className = "cdnRow";
+      const box = document.createElement("button");
+      box.type = "button";
+      box.className = "cdnBox";
+      box.textContent = "下载谱面";
+      const status = document.createElement("span");
+      status.className = "cdnStatus";
+      row.append(box, status);
+
+      box.addEventListener("click", async () => {
+        box.disabled = true;
+        status.classList.remove("error");
+        status.textContent = "查询 CDN…";
+        try {
+          const data = await loadCdnData(base, level.id);
+          const meta = data?.metadata ?? {};
+          const archive = meta.originalArchive ?? meta.originalZip ?? null;
+          const dlLink = level.dlLink || "";
+          if (!archive && !dlLink) {
+            status.textContent = "该谱面无 CDN 文件";
+            return;
+          }
+          const name = archive?.originalFilename || archive?.name || "谱面压缩包";
+          const sizeMb = archive?.size
+            ? `${(archive.size / 1048576).toFixed(1)} MB`
+            : "";
+          const detail = [name, sizeMb].filter(Boolean).join("，");
+          if (window.confirm(`确认下载谱面「${level.song ?? level.id}」？\n${detail}`)) {
+            const anchor = document.createElement("a");
+            anchor.href = dlLink || `https://cdn.tuforums.com/${archive.path}`;
+            anchor.rel = "noopener";
+            anchor.click();
+            status.textContent = "已开始下载";
+          } else {
+            status.textContent = "已取消下载";
+          }
+        } catch (error) {
+          status.textContent = `获取 CDN 失败：${error.message}`;
+          status.classList.add("error");
+        } finally {
+          box.disabled = false;
+        }
+      });
+
+      return row;
+    }
+
+    function createLevelCard(base, level, difficulty, options = {}) {
+      const card = document.createElement("section");
+      card.className = "card";
+      card.dataset.id = level.id ?? "";
+      card.dataset.diffId = level.diffId ?? "";
+      card.dataset.tiles = level.tilecount ?? level.tileCount ?? "";
+      card.dataset.duration = Number.isFinite(Number(level.levelLengthInMs))
+        ? level.levelLengthInMs
+        : "";
+
+      const searchParts = [level.song, level.suffix, level.artist, level.creator];
+      if (Array.isArray(level.levelCredits)) {
+        for (const credit of level.levelCredits) {
+          searchParts.push(credit?.creator?.name);
+        }
+      }
+      card.dataset.search = normalizeText(searchParts.filter(Boolean).join(" "));
+      card.dataset.songRaw = [level.song, level.suffix]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      card.dataset.dlLink = level.dlLink || "";
+
+      const dl = document.createElement("dl");
+      for (const [label, value] of extractFields(level, difficulty)) {
+        const dt = document.createElement("dt");
+        dt.textContent = label;
+        const dd = document.createElement("dd");
+        dd.textContent = value ?? "未获取到";
+        dl.append(dt, dd);
+      }
+      card.append(dl, createCdnRow(base, level), createRatingPanel(base, level));
+
+      card.classList.add("clickable");
+      card.addEventListener("click", (event) => {
+        if (event.target.closest("button, a, details, summary, input, select, label, pre")) {
+          return;
+        }
+        if (level.id == null) return;
+        location.href = `level.html?id=${encodeURIComponent(level.id)}`;
+      });
+
+      if (options.raw) {
+        const rawPanel = document.createElement("details");
+        const rawSummary = document.createElement("summary");
+        rawSummary.textContent = "原始响应";
+        const pre = document.createElement("pre");
+        pre.textContent = JSON.stringify(options.raw, null, 2);
+        rawPanel.append(rawSummary, pre);
+        card.append(rawPanel);
+      }
+
+      return card;
+    }
+
+    function readNumber(input) {
+      const raw = input.value.trim();
+      if (raw === "") return null;
+      const value = Number(raw);
+      return Number.isFinite(value) ? value : null;
+    }
+
+    function readDurationMs(hoursInput, minutesInput, secondsInput) {
+      const hours = readNumber(hoursInput);
+      const minutes = readNumber(minutesInput);
+      const seconds = readNumber(secondsInput);
+      if (hours == null && minutes == null && seconds == null) return null;
+      return ((hours ?? 0) * 3600 + (minutes ?? 0) * 60 + (seconds ?? 0)) * 1000;
+    }
+
+    function fuzzyTokens(raw) {
+      return raw
+        .split(/\s+/)
+        .map((token) => normalizeText(token))
+        .filter(Boolean);
+    }
+
+    function buildQuery() {
+      const filters = [];
+
+      const minDuration = readDurationMs(minHourInput, minMinInput, minSecInput);
+      if (minDuration != null) filters.push(`time:>=${Math.round(minDuration)}`);
+      const maxDuration = readDurationMs(maxHourInput, maxMinInput, maxSecInput);
+      if (maxDuration != null) filters.push(`time:<=${Math.round(maxDuration)}`);
+
+      const minTiles = readNumber(minTilesInput);
+      if (minTiles != null) filters.push(`tilecount:>=${Math.round(minTiles)}`);
+      const maxTiles = readNumber(maxTilesInput);
+      if (maxTiles != null) filters.push(`tilecount:<=${Math.round(maxTiles)}`);
+
+      const minId = readNumber(minIdInput);
+      if (minId != null) filters.push(`id:>=${Math.round(minId)}`);
+      const maxId = readNumber(maxIdInput);
+      if (maxId != null) filters.push(`id:<=${Math.round(maxId)}`);
+
+      const raw = songInput.value.trim();
+      if (!raw) return filters.join(", ");
+
+      if (matchModeInput.value === "exact") {
+        return [raw, ...filters].join(", ");
+      }
+
+      const tokens = fuzzyTokens(raw);
+      const clause = tokens.map((token) => `song:${token}`).join(", ");
+      if (!clause) return filters.join(", ");
+      return [clause, ...filters].join(", ");
+    }
+
+    const sortControls = [
+      { key: "RECENT", field: "id", input: sortIdInput },
+      { key: "TIME", field: "duration", input: sortTimeInput },
+      { key: "TILES", field: "tilecount", input: sortTilesInput }
+    ];
+
+    function getActiveSorts() {
+      return sortControls
+        .filter((control) => control.input.value !== "")
+        .map((control) => ({
+          field: control.field,
+          direction: control.input.value
+        }));
+    }
+
+    function buildSortParam() {
+      const active = getActiveSorts();
+      const first = active[0];
+      if (!first) return "RECENT_ASC";
+      const key = sortControls.find((control) => control.field === first.field).key;
+      return `${key}_${first.direction.toUpperCase()}`;
+    }
+
+    function cardValue(card, field) {
+      let raw;
+      if (field === "tilecount") raw = card.dataset.tiles;
+      else if (field === "duration") raw = card.dataset.duration;
+      else raw = card.dataset.id;
+      if (raw == null || raw === "") return null;
+      const value = Number(raw);
+      return Number.isFinite(value) ? value : null;
+    }
+
+    function sortRenderedCards() {
+      const active = getActiveSorts();
+      if (!active.length) return;
+      Array.from(resultCards.children)
+        .sort((a, b) => {
+          for (const { field, direction } of active) {
+            const av = cardValue(a, field);
+            const bv = cardValue(b, field);
+            if (av == null && bv == null) continue;
+            if (av == null) return 1;
+            if (bv == null) return -1;
+            if (av !== bv) return (av - bv) * (direction === "asc" ? 1 : -1);
+          }
+          return 0;
+        })
+        .forEach((card) => resultCards.append(card));
+    }
+
+    async function searchLevels(base, query, page) {
+      const params = new URLSearchParams({
+        limit: String(SEARCH_LIMIT),
+        offset: String((page - 1) * SEARCH_LIMIT),
+        sort: buildSortParam()
+      });
+      if (query) params.set("query", query);
+      const res = await fetch(`${base}/v2/database/levels?${params}`, {
+        credentials: "include",
+        headers: { Accept: "application/json" }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
+    async function renderResults(base, results) {
+      resultCards.innerHTML = "";
+      for (const level of results) {
+        const difficulty = await resolveDifficulty(base, level);
+        resultCards.append(createLevelCard(base, level, difficulty));
+      }
+      sortRenderedCards();
+    }
+
+    const specialDifficultyInputs = [
+      { id: "0", input: diffUnrankedInput },
+      { id: "10101", input: diffImpossibleInput },
+      { id: "1000", input: diffCensoredInput },
+      { id: "2355445", input: diffP0Input }
+    ];
+
+    function applyCardFilters() {
+      if (!searchState) return;
+      const rawInput = songInput.value.trim();
+      const exactMode = matchModeInput.value === "exact";
+      const exactQuery = rawInput.toLowerCase();
+      const fuzzyTokenList = exactMode ? [] : fuzzyTokens(rawInput);
+      const excluded = new Set(
+        specialDifficultyInputs
+          .filter((item) => !item.input.checked)
+          .map((item) => item.id)
+      );
+      let hiddenCount = 0;
+      for (const card of resultCards.children) {
+        let nameMatches = true;
+        if (exactMode) {
+          if (exactQuery) {
+            nameMatches = (card.dataset.songRaw || "").includes(exactQuery);
+          }
+        } else if (fuzzyTokenList.length) {
+          const haystack = card.dataset.search || "";
+          nameMatches = fuzzyTokenList.every((token) => haystack.includes(token));
+        }
+        const shouldHide = !nameMatches || excluded.has(card.dataset.diffId);
+        card.hidden = shouldHide;
+        if (shouldHide) hiddenCount += 1;
+      }
+      updatePager(hiddenCount);
+    }
+
+    function updatePager(hiddenCount = 0) {
+      if (!searchState) return;
+      const total = searchState.total;
+      const pages = Math.max(1, Math.ceil(total / searchState.limit));
+      const page = Math.min(searchState.page, pages);
+      const hiddenNote =
+        hiddenCount > 0 ? `，本页隐藏 ${hiddenCount} 条（名称/特殊难度过滤）` : "";
+      resultMeta.textContent =
+        total === 0
+          ? "未找到匹配的谱面"
+          : `共 ${total} 条结果，第 ${page} / ${pages} 页（每页 ${searchState.limit} 条${hiddenNote}）`;
+      pageInfo.textContent = `第 ${page} / ${pages} 页`;
+      prevBtn.disabled = page <= 1;
+      nextBtn.disabled = page >= pages;
+      pager.hidden = false;
+    }
+
+    async function doSearch(page) {
+      const base = API_BASE;
+      const query = buildQuery();
+      queryBtn.disabled = true;
+      statusEl.textContent = "查询中…";
+      statusEl.classList.remove("error");
+
+      try {
+        const data = await searchLevels(base, query, page);
+        const results = Array.isArray(data.results) ? data.results : [];
+        await renderResults(base, results);
+        searchState = {
+          base,
+          query,
+          page,
+          limit: SEARCH_LIMIT,
+          total: data.total ?? results.length
+        };
+        filterPanel.hidden = false;
+        applyCardFilters();
+        statusEl.textContent = `搜索成功：${query || "全部谱面"}`;
+        statusEl.classList.remove("error");
+        resultEl.hidden = false;
+      } catch (error) {
+        resultEl.hidden = true;
+        statusEl.textContent = `查询失败：${error.message}。请确保通过本地 HTTP 服务器打开本页面。`;
+        statusEl.classList.add("error");
+      } finally {
+        queryBtn.disabled = false;
+      }
+    }
+
+    async function query() {
+      const base = API_BASE;
+      const id = idInput.value.trim();
+      const song = songInput.value.trim();
+      if (!id && !song && !buildQuery()) {
+        statusEl.textContent = "请输入谱面 ID、谱面名或至少一个筛选条件";
+        statusEl.classList.add("error");
+        return;
+      }
+
+      if (id) {
+        queryBtn.disabled = true;
+        resultEl.hidden = true;
+        resultCards.innerHTML = "";
+        resultMeta.textContent = "";
+        pager.hidden = true;
+        searchState = null;
+        statusEl.textContent = "查询中…";
+        statusEl.classList.remove("error");
+        try {
+          const endpoint = /^\d+$/.test(id)
+            ? `/v2/database/levels/byId/${encodeURIComponent(id)}`
+            : `/v2/database/levels/${encodeURIComponent(id)}`;
+          const res = await fetch(base + endpoint, {
+            credentials: "include",
+            headers: { Accept: "application/json" }
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          const level = data.level || data.data || data;
+          const difficulty = await resolveDifficulty(base, level);
+          resultCards.append(createLevelCard(base, level, difficulty, { raw: data }));
+          filterPanel.hidden = true;
+          resultMeta.textContent = `谱面 ID ${id}`;
+          statusEl.textContent = `查询成功：${endpoint}`;
+          statusEl.classList.remove("error");
+          resultEl.hidden = false;
+        } catch (error) {
+          resultEl.hidden = true;
+          statusEl.textContent = `查询失败：${error.message}。请确保通过本地 HTTP 服务器打开本页面。`;
+          statusEl.classList.add("error");
+        } finally {
+          queryBtn.disabled = false;
+        }
+        return;
+      }
+
+      await doSearch(1);
+    }
+
+    function scheduleFilterSearch() {
+      if (filterPanel.hidden) return;
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => doSearch(1), 400);
+    }
+
+    for (const control of [
+      minHourInput,
+      minMinInput,
+      minSecInput,
+      maxHourInput,
+      maxMinInput,
+      maxSecInput,
+      minTilesInput,
+      maxTilesInput,
+      minIdInput,
+      maxIdInput
+    ]) {
+      control.addEventListener("input", scheduleFilterSearch);
+    }
+
+    for (const control of [sortIdInput, sortTimeInput, sortTilesInput]) {
+      control.addEventListener("change", () => {
+        if (!filterPanel.hidden) doSearch(1);
+      });
+    }
+
+    for (const item of specialDifficultyInputs) {
+      item.input.addEventListener("change", () => {
+        if (!filterPanel.hidden) applyCardFilters();
+      });
+    }
+
+    matchModeInput.addEventListener("change", () => {
+      if (!filterPanel.hidden) doSearch(1);
+    });
+
+    prevBtn.addEventListener("click", () => {
+      if (searchState && searchState.page > 1) doSearch(searchState.page - 1);
+    });
+    nextBtn.addEventListener("click", () => {
+      if (searchState) doSearch(searchState.page + 1);
+    });
+
+    queryBtn.addEventListener("click", query);
+    idInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") query();
+    });
+    songInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") query();
+    });
+
+    if (location.protocol === "file:") {
+      statusEl.textContent = "提示：file:// 会被 CORS 拦截，请用本地 HTTP 服务器打开本页面。";
+      statusEl.classList.add("error");
+    }
+    if (location.protocol !== "file:") {
+      idInput.focus();
+    }
+  </script>
+</body>
+
+</html>
