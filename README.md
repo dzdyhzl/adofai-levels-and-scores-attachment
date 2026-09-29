@@ -34,16 +34,11 @@
 - 分页展示，每页 50 人，页码条支持首末页跳转与跳转至指定页
 - 展示头像、玩家名、国家、排位分数、PP 分、平均 XAcc、通过数、WF 数，点击玩家名进入 TUF 主页
 
-### XAcc 计算器（Accuracy Calculator.py）
+### 准度计算器（index.html 内置）
 
-输入六项判定（earlyDouble / earlySingle / ePerfect / perfect / lPerfect / lateSingle），自动计算 X-Accuracy 并弹窗显示结果。
+谱面搜索页右下角「准度计算」按钮：输入六项判定（earlyDouble / earlySingle / ePerfect / perfect / lPerfect / lateSingle），自动计算 X-Accuracy，结果精确到 0.0001%。
 
-```powershell
-pip install easygui
-python "Accuracy Calculator.py"
-```
-
-### 计算资料（TUF计算知识整理.md）
+### 计算资料（知识库/TUF计算知识整理.md）
 
 整理 TUF 分数体系的数据来源、判定权重、XAcc 公式、单曲 Score 公式与 B20 算法，是页面之外的计算参考文档。
 
@@ -51,17 +46,17 @@ python "Accuracy Calculator.py"
 
 ```
 .
-├── index.html               # 谱面搜索页
+├── index.html               # 谱面搜索页（内置准度计算器）
 ├── level.html               # 谱面详情页
 ├── ranking.html             # 玩家排名页
 ├── functions/
 │   ├── _lib/proxy.js        # Cloudflare Pages Functions 代理逻辑（/v2、/v3 共用）
 │   ├── v2/[[path]].js       # 转发 /v2/* 到 TUF API
 │   └── v3/[[path]].js       # 转发 /v3/* 到 TUF API
-├── Accuracy Calculator.py   # XAcc 计算器（Python + easygui）
-├── TUF计算知识整理.md        # 分数计算知识整理
-├── API doc.json             # TUF OpenAPI 文档（OpenAPI 3.0.3）
-└── PP分计算公式.jpg          # Score 公式原图
+└── 知识库/
+    ├── API doc.json         # TUF OpenAPI 文档（OpenAPI 3.0.3，参考资料）
+    ├── TUF计算知识整理.md    # 分数计算知识整理
+    └── PP分计算公式.jpg      # Score 公式原图
 ```
 
 ## 使用方法
@@ -99,7 +94,7 @@ TUF API 的 CORS 仅允许 `https://tuforums.com` 与 localhost，其他域名�
 | `GET /v2/database/passes/level/{levelId}` | 某谱面全部通关记录 |
 | `GET /v3/players/leaderboard` | 玩家排行榜（sortBy / order / limit / offset） |
 
-更多接口见 `API doc.json`。
+更多接口见 `知识库/API doc.json`。
 
 ## 公式摘要
 
@@ -113,4 +108,4 @@ B20   = Σ(i=1..20) s_i · 0.9^(i-1)
 
 其中 `B` 为关卡基础分，`x` 为 XAcc，`s` 为播放倍数，`a_m = max(0, m - floor(t/315))`（`m` 为空敲数，`t` 为方块数），`f` 为是否非长按默认设置。
 
-各分段函数的完整定义见 [TUF计算知识整理.md](TUF计算知识整理.md)。
+各分段函数的完整定义见 [知识库/TUF计算知识整理.md](知识库/TUF计算知识整理.md)。

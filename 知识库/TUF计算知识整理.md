@@ -1,6 +1,6 @@
 # TUF 分数计算 已知信息整理
 
-> 本文档由现有三份材料整理：`API doc.json`、`Accuracy Calculator.py`、`PP分计算公式.jpg`。
+> 本文档由三份材料整理：`API doc.json`、`Accuracy Calculator.py`（XAcc 计算器，现已由 index.html 内置计算器取代并从仓库移除）、`PP分计算公式.jpg`（后两者曾位于仓库根目录，现与本文件同在知识库目录）。
 > 有疑问的条目已标【待确认】，请直接在此文件上修改。
 > 变量名统一使用 TUF 字段名。
 
