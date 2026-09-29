@@ -378,11 +378,6 @@
       background: var(--accent-soft);
     }
 
-    #pageInfo {
-      font-size: 13px;
-      color: var(--muted);
-    }
-
     .hint {
       margin: 14px 0 0;
       font-size: 12px;
@@ -702,6 +697,77 @@
       font-weight: 600;
     }
 
+    #pager {
+      display: grid;
+      gap: 10px;
+      justify-items: start;
+    }
+
+    #pageNumbers {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    #pageNumbers button {
+      height: 34px;
+      min-width: 38px;
+      padding: 0 12px;
+      border: 1px solid #c7d2fe;
+      border-radius: 999px;
+      background: #fff;
+      color: #3455d0;
+      font-size: 13.5px;
+      font-variant-numeric: tabular-nums;
+      box-shadow: none;
+    }
+
+    #pageNumbers button:hover:not(:disabled):not(.currentPage) {
+      background: var(--accent-soft);
+      transform: none;
+    }
+
+    #pageNumbers button.currentPage {
+      background: linear-gradient(135deg, #4a7bf8, #3b6ef6);
+      border-color: transparent;
+      color: #fff;
+      cursor: default;
+    }
+
+    #pageNumbers button:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+
+    .pageDots {
+      color: var(--faint);
+      font-size: 13px;
+    }
+
+    .jumpRow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .jumpLabel,
+    .jumpUnit {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .jumpRow input {
+      width: 90px;
+      height: 34px;
+    }
+
+    #jumpBtn {
+      height: 34px;
+      padding: 0 16px;
+      font-size: 13px;
+    }
+
     @media (max-width: 600px) {
       header {
         padding-top: 24px;
@@ -882,9 +948,13 @@
       <p id="resultMeta"></p>
       <div id="resultCards"></div>
       <div id="pager" hidden>
-        <button id="prevBtn">上一页</button>
-        <span id="pageInfo"></span>
-        <button id="nextBtn">下一页</button>
+        <span id="pageNumbers"></span>
+        <div class="jumpRow">
+          <label class="jumpLabel" for="jumpInput">跳转至</label>
+          <input id="jumpInput" type="number" min="1">
+          <span class="jumpUnit">页</span>
+          <button id="jumpBtn" type="button">跳转</button>
+        </div>
       </div>
     </section>
   </main>
@@ -948,12 +1018,13 @@
     const diffGqInput = document.getElementById("diffGq");
     const diffUqInput = document.getElementById("diffUq");
     const pager = document.getElementById("pager");
-    const prevBtn = document.getElementById("prevBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const pageInfo = document.getElementById("pageInfo");
+    const pageNumbers = document.getElementById("pageNumbers");
+    const jumpInput = document.getElementById("jumpInput");
+    const jumpBtn = document.getElementById("jumpBtn");
 
     let searchState = null;
     let filterTimer = null;
+    let lastPages = 1;
 
     function toText(value) {
       if (value == null) return null;
@@ -1451,10 +1522,9 @@
         total === 0
           ? "未找到匹配的谱面"
           : `共 ${total} 条结果，第 ${page} / ${pages} 页（每页 ${searchState.limit} 条${hiddenNote}${invalidNote}）`;
-      pageInfo.textContent = `第 ${page} / ${pages} 页`;
-      prevBtn.disabled = page <= 1;
-      nextBtn.disabled = page >= pages;
-      pager.hidden = false;
+      lastPages = pages;
+      renderPageNumbers(page, pages);
+      pager.hidden = total === 0;
     }
 
     async function doSearch(page) {
@@ -1588,11 +1658,47 @@
       resultEl.scrollIntoView({ block: "start" });
     }
 
-    prevBtn.addEventListener("click", () => {
-      if (searchState && searchState.page > 1) goToPage(searchState.page - 1);
-    });
-    nextBtn.addEventListener("click", () => {
-      if (searchState) goToPage(searchState.page + 1);
+    function renderPageNumbers(current, pages) {
+      pageNumbers.innerHTML = "";
+      const createButton = (label, target, isCurrent = false, isDisabled = false) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        if (isCurrent) button.classList.add("currentPage");
+        if (isDisabled) button.disabled = true;
+        else button.addEventListener("click", () => goToPage(target));
+        return button;
+      };
+      const createDots = () => {
+        const span = document.createElement("span");
+        span.className = "pageDots";
+        span.textContent = "…";
+        return span;
+      };
+
+      pageNumbers.append(createButton("«", 1, false, current <= 1));
+      if (current > 2) pageNumbers.append(createDots());
+      if (current > 1) pageNumbers.append(createButton(String(current - 1), current - 1));
+      pageNumbers.append(createButton(String(current), current, true));
+      if (current < pages) pageNumbers.append(createButton(String(current + 1), current + 1));
+      if (pages - current >= 2) {
+        pageNumbers.append(createDots());
+        pageNumbers.append(createButton(String(pages), pages));
+      }
+      pageNumbers.append(createButton("»", pages, false, current >= pages));
+    }
+
+    function submitJump() {
+      if (!searchState) return;
+      const value = Number(jumpInput.value);
+      if (!Number.isFinite(value)) return;
+      jumpInput.value = "";
+      goToPage(Math.min(Math.max(1, Math.round(value)), lastPages));
+    }
+
+    jumpBtn.addEventListener("click", submitJump);
+    jumpInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submitJump();
     });
 
     queryBtn.addEventListener("click", query);
