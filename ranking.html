@@ -320,6 +320,134 @@
       color: var(--muted);
     }
 
+    ::selection {
+      background: #c7d7ff;
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c9d2e3;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background-clip: padding-box;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #aab6cf;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    body {
+      background:
+        radial-gradient(1100px 480px at 50% -10%, #e8eefc 0%, var(--bg) 55%),
+        radial-gradient(900px 520px at 100% 100%, #f1ecff 0%, rgba(241, 236, 255, 0) 60%);
+      background-attachment: fixed;
+    }
+
+    .panel {
+      border-radius: 16px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 18px 44px -26px rgba(16, 24, 40, .3);
+    }
+
+    .topNav {
+      background: rgba(255, 255, 255, .92);
+      box-shadow: 0 8px 24px -22px rgba(16, 24, 40, .55);
+    }
+
+    @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+      h1 {
+        background: linear-gradient(120deg, #2b3a55, #3b6ef6 55%, #7a5cf0);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+    }
+
+    input,
+    select {
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    input:hover,
+    select:hover {
+      border-color: #b9c4dd;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid #7aa2ff;
+      outline-offset: 2px;
+    }
+
+    th {
+      letter-spacing: .3px;
+    }
+
+    .tableWrap {
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .03);
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #fbfcfe;
+    }
+
+    tbody tr:hover td {
+      background: #f4f7ff;
+    }
+
+    .rankBadge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      background: #eef1f7;
+      color: #5b6472;
+    }
+
+    .rankBadge.top1 {
+      background: linear-gradient(135deg, #ffe08a, #f5a623);
+      color: #5a3c00;
+      box-shadow: 0 4px 10px -4px rgba(245, 166, 35, .9);
+    }
+
+    .rankBadge.top2 {
+      background: linear-gradient(135deg, #eef2f8, #c3ccd9);
+      color: #4a5568;
+      box-shadow: 0 4px 10px -4px rgba(160, 174, 192, .9);
+    }
+
+    .rankBadge.top3 {
+      background: linear-gradient(135deg, #f0c19a, #cd7f4e);
+      color: #4a2c12;
+      box-shadow: 0 4px 10px -4px rgba(205, 127, 78, .9);
+    }
+
+    .avatar {
+      box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #dbe4ff;
+    }
+
+    #pager button {
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
     @media (max-width: 560px) {
       header {
         padding-top: 24px;
@@ -507,10 +635,20 @@
       boardBody.innerHTML = "";
       players.forEach((player, index) => {
         const row = document.createElement("tr");
+        const rankValue = Number(player.rank ?? (page - 1) * PAGE_SIZE + index + 1);
+        const rankCell = document.createElement("td");
+        rankCell.classList.add("num");
+        const rankBadge = document.createElement("span");
+        rankBadge.className = "rankBadge";
+        if (rankValue === 1) rankBadge.classList.add("top1");
+        else if (rankValue === 2) rankBadge.classList.add("top2");
+        else if (rankValue === 3) rankBadge.classList.add("top3");
+        rankBadge.textContent = Number.isFinite(rankValue) ? String(rankValue) : "—";
+        rankCell.append(rankBadge);
         const playerCell = document.createElement("td");
         playerCell.append(createPlayerBox(player));
         row.append(
-          makeCell(String(player.rank ?? (page - 1) * PAGE_SIZE + index + 1), true),
+          rankCell,
           playerCell,
           makeCell(toText(player.country) || "—", true),
           makeCell(formatScore(player.rankedScore), true),
