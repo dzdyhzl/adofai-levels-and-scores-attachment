@@ -135,6 +135,10 @@
       color: var(--danger);
     }
 
+    #passesPanel {
+      scroll-margin-top: 62px;
+    }
+
     .infoLayout {
       display: grid;
       grid-template-columns: 1fr 240px;
@@ -982,22 +986,18 @@
       });
     }
 
-    function scrollToTop() {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    function goToPage(targetPage) {
+      page = targetPage;
+      renderTable();
+      passesPanel.scrollIntoView({ block: "start" });
     }
 
     prevBtn.addEventListener("click", () => {
-      if (page > 1) {
-        page -= 1;
-        scrollToTop();
-        renderTable();
-      }
+      if (page > 1) goToPage(page - 1);
     });
 
     nextBtn.addEventListener("click", () => {
-      page += 1;
-      scrollToTop();
-      renderTable();
+      goToPage(page + 1);
     });
 
     load();

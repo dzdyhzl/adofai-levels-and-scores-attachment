@@ -158,6 +158,10 @@
       color: var(--danger);
     }
 
+    #boardPanel {
+      scroll-margin-top: 62px;
+    }
+
     .toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -564,19 +568,16 @@
 
     sortField.addEventListener("change", () => load(1));
     sortOrder.addEventListener("change", () => load(1));
-    function scrollToTop() {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    async function goToPage(targetPage) {
+      await load(targetPage);
+      boardPanel.scrollIntoView({ block: "start" });
     }
 
     prevBtn.addEventListener("click", () => {
-      if (page > 1) {
-        scrollToTop();
-        load(page - 1);
-      }
+      if (page > 1) goToPage(page - 1);
     });
     nextBtn.addEventListener("click", () => {
-      scrollToTop();
-      load(page + 1);
+      goToPage(page + 1);
     });
 
     load(1);

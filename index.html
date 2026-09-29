@@ -253,6 +253,10 @@
       color: var(--muted);
     }
 
+    #result {
+      scroll-margin-top: 62px;
+    }
+
     .card {
       background: #fbfcfe;
       border: 1px solid #e8ebf3;
@@ -1330,21 +1334,16 @@
       if (!filterPanel.hidden) doSearch(1);
     });
 
-    function scrollToTop() {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    async function goToPage(targetPage) {
+      await doSearch(targetPage);
+      resultEl.scrollIntoView({ block: "start" });
     }
 
     prevBtn.addEventListener("click", () => {
-      if (searchState && searchState.page > 1) {
-        scrollToTop();
-        doSearch(searchState.page - 1);
-      }
+      if (searchState && searchState.page > 1) goToPage(searchState.page - 1);
     });
     nextBtn.addEventListener("click", () => {
-      if (searchState) {
-        scrollToTop();
-        doSearch(searchState.page + 1);
-      }
+      if (searchState) goToPage(searchState.page + 1);
     });
 
     queryBtn.addEventListener("click", query);
