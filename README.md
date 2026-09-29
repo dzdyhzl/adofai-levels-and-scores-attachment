@@ -49,8 +49,14 @@
 ├── index.html               # 谱面搜索页（内置准度计算器）
 ├── level.html               # 谱面详情页
 ├── ranking.html             # 玩家排名页
+├── assets/
+│   ├── common.css           # 共享样式（设计令牌、导航、面板、按钮、表格、分页、动画）
+│   ├── common.js            # 共享逻辑（API 基址、格式化、难度徽章、页码条、导航滚动）
+│   ├── index.css            # 谱面搜索页专属样式
+│   ├── level.css            # 谱面详情页专属样式
+│   └── ranking.css          # 玩家排名页专属样式
 ├── functions/
-│   ├── _lib/proxy.js        # Cloudflare Pages Functions 代理逻辑（/v2、/v3 共用）
+│   ├── _lib/proxy.js        # Cloudflare Pages Functions 代理逻辑（/v2、/v3 共用，带路径白名单）
 │   ├── v2/[[path]].js       # 转发 /v2/* 到 TUF API
 │   └── v3/[[path]].js       # 转发 /v3/* 到 TUF API
 └── 知识库/

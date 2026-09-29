@@ -1,0 +1,200 @@
+header {
+  max-width: 1200px;
+}
+
+main {
+  max-width: 1200px;
+}
+
+.topNavInner {
+  max-width: 1200px;
+}
+
+#status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+#boardPanel {
+  scroll-margin-top: 62px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.toolbar label {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #5b6472;
+}
+
+#boardMeta {
+  margin: 0 0 4px auto;
+  font-size: 12.5px;
+  color: var(--muted);
+  align-self: center;
+}
+
+table {
+  min-width: 820px;
+}
+
+th:nth-child(3),
+td:nth-child(3) {
+  padding-left: 40px;
+}
+
+.playerBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #dbe4ff, #c7d2fe);
+  color: #3455d0;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #dbe4ff;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.playerLink {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.playerLink:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
+}
+
+.rankBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  background: #eef1f7;
+  color: #5b6472;
+}
+
+.rankBadge.top1 {
+  background: linear-gradient(135deg, #ffe08a, #f5a623);
+  color: #5a3c00;
+  box-shadow: 0 4px 10px -4px rgba(245, 166, 35, .9);
+}
+
+.rankBadge.top2 {
+  background: linear-gradient(135deg, #eef2f8, #c3ccd9);
+  color: #4a5568;
+  box-shadow: 0 4px 10px -4px rgba(160, 174, 192, .9);
+}
+
+.rankBadge.top3 {
+  background: linear-gradient(135deg, #f0c19a, #cd7f4e);
+  color: #4a2c12;
+  box-shadow: 0 4px 10px -4px rgba(205, 127, 78, .9);
+}
+
+.rankBadge.top1 {
+  background-size: 220% 220%;
+  animation: shimmer 2.6s ease-in-out infinite;
+}
+
+.rangeBlock {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #eceef4;
+  border-radius: 12px;
+  background: #fbfcfe;
+  margin-bottom: 12px;
+}
+
+.rangeGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.rangeRow {
+  display: grid;
+  grid-template-columns: 110px 1fr 14px 1fr;
+  gap: 8px;
+  align-items: center;
+  max-width: 560px;
+}
+
+.rangeLabel {
+  font-size: 12.5px;
+  color: #5b6472;
+}
+
+.rangeRow input {
+  height: 34px;
+  padding: 0 10px;
+}
+
+.rangeDash {
+  text-align: center;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.rangeHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@media (max-width: 560px) {
+  header {
+    padding-top: 24px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+}

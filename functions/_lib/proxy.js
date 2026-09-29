@@ -1,4 +1,5 @@
 const API_ORIGIN = "https://api.tuforums.com";
+const ALLOWED_PATH_PREFIXES = ["/v2/database/", "/v3/players/"];
 const FORWARD_REQUEST_HEADERS = [
   "accept",
   "accept-language",
@@ -17,6 +18,13 @@ const DROP_RESPONSE_HEADERS = [
 export async function onRequest(context) {
   const { request } = context;
   const url = new URL(request.url);
+
+  if (!ALLOWED_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))) {
+    return new Response(JSON.stringify({ error: "Path not allowed" }), {
+      status: 404,
+      headers: { "content-type": "application/json" }
+    });
+  }
 
   if (request.method === "OPTIONS") {
     return new Response(null, {
