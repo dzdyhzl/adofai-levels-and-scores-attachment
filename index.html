@@ -428,6 +428,140 @@
       font-weight: 600;
     }
 
+    .accFab {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 200;
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #3b6ef6, #7a5cf0);
+      color: #fff;
+      font-size: 14px;
+      box-shadow: 0 12px 26px -10px rgba(59, 110, 246, .9);
+    }
+
+    .accFab:hover:not(:disabled) {
+      background: linear-gradient(135deg, #3f70f0, var(--accent-dark));
+    }
+
+    .accOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(15, 23, 42, .45);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .accOverlay[hidden] {
+      display: none;
+    }
+
+    .accModal {
+      width: 100%;
+      max-width: 420px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 24px 60px -20px rgba(16, 24, 40, .5);
+    }
+
+    .accHead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .accHead h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: #38404e;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .accHead h3::before {
+      content: "";
+      width: 4px;
+      height: 14px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #3b6ef6, #7a5cf0);
+    }
+
+    .accClose {
+      height: 30px;
+      width: 30px;
+      padding: 0;
+      border-radius: 8px;
+      background: #f2f4f8;
+      color: #5b6472;
+      font-size: 16px;
+      line-height: 1;
+      box-shadow: none;
+    }
+
+    .accClose:hover:not(:disabled) {
+      background: #e6e9f1;
+    }
+
+    .accGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .accActions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .accActions button {
+      flex: 1;
+    }
+
+    .accGhost {
+      background: #fff;
+      color: #3455d0;
+      border: 1px solid #c7d2fe;
+      box-shadow: none;
+    }
+
+    .accGhost:hover:not(:disabled) {
+      background: var(--accent-soft);
+    }
+
+    .accResult {
+      margin: 14px 0 0;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      color: #2b4bbf;
+      font-size: 15px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .accResult.error {
+      background: #fdecec;
+      color: var(--danger);
+    }
+
+    .accHint {
+      margin: 12px 0 0;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--faint);
+    }
+
     @media (max-width: 600px) {
       header {
         padding-top: 24px;
@@ -588,6 +722,24 @@
       </div>
     </section>
   </main>
+
+  <button id="accFab" class="accFab" type="button">准度计算</button>
+
+  <div id="accOverlay" class="accOverlay" hidden>
+    <div class="accModal" role="dialog" aria-modal="true" aria-labelledby="accTitle">
+      <div class="accHead">
+        <h3 id="accTitle">准度计算</h3>
+        <button id="accClose" class="accClose" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="accGrid" id="accGrid"></div>
+      <div class="accActions">
+        <button id="accCalc" type="button">计算</button>
+        <button id="accReset" class="accGhost" type="button">清空</button>
+      </div>
+      <p id="accResult" class="accResult" hidden></p>
+      <p class="accHint">XAcc = (perfect + (lPerfect + ePerfect)×0.75 + (earlySingle + lateSingle)×0.4 + earlyDouble×0.2) ÷ 总判定数，结果精确到 0.0001%。</p>
+    </div>
+  </div>
 
   <script>
     const LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", "[::1]"];
@@ -1191,6 +1343,101 @@
     });
     songInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") query();
+    });
+
+    const accFab = document.getElementById("accFab");
+    const accOverlay = document.getElementById("accOverlay");
+    const accClose = document.getElementById("accClose");
+    const accGrid = document.getElementById("accGrid");
+    const accCalc = document.getElementById("accCalc");
+    const accReset = document.getElementById("accReset");
+    const accResult = document.getElementById("accResult");
+
+    const ACC_FIELDS = [
+      { key: "perfect", label: "Perfect" },
+      { key: "ePerfect", label: "稍快 Perfect" },
+      { key: "lPerfect", label: "稍慢 Perfect" },
+      { key: "earlySingle", label: "太快" },
+      { key: "lateSingle", label: "太慢" },
+      { key: "earlyDouble", label: "提前（空敲）" }
+    ];
+    const accInputs = [];
+
+    for (const field of ACC_FIELDS) {
+      const label = document.createElement("label");
+      const text = document.createElement("span");
+      text.textContent = field.label;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.step = "1";
+      input.placeholder = "0";
+      input.title = field.key;
+      label.append(text, input);
+      accGrid.append(label);
+      accInputs.push({ key: field.key, input });
+    }
+
+    function openAccModal() {
+      accOverlay.hidden = false;
+      accResult.hidden = true;
+      accInputs[0].input.focus();
+    }
+
+    function closeAccModal() {
+      accOverlay.hidden = true;
+    }
+
+    function readAccCount(input) {
+      const raw = input.value.trim();
+      if (raw === "") return 0;
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) return null;
+      return value;
+    }
+
+    function calculateAcc() {
+      accResult.hidden = false;
+      accResult.classList.remove("error");
+      const counts = {};
+      for (const { key, input } of accInputs) {
+        const value = readAccCount(input);
+        if (value == null) {
+          accResult.textContent = "请输入非负整数";
+          accResult.classList.add("error");
+          return;
+        }
+        counts[key] = value;
+      }
+      const sum = ACC_FIELDS.reduce((total, field) => total + counts[field.key], 0);
+      if (sum <= 0) {
+        accResult.textContent = "请至少输入一个判定数量";
+        accResult.classList.add("error");
+        return;
+      }
+      const weighted =
+        counts.perfect +
+        (counts.lPerfect + counts.ePerfect) * 0.75 +
+        (counts.earlySingle + counts.lateSingle) * 0.4 +
+        counts.earlyDouble * 0.2;
+      const xacc = weighted / sum;
+      accResult.textContent = `XAcc：${(xacc * 100).toFixed(4)}%`;
+    }
+
+    accFab.addEventListener("click", openAccModal);
+    accClose.addEventListener("click", closeAccModal);
+    accOverlay.addEventListener("click", (event) => {
+      if (event.target === accOverlay) closeAccModal();
+    });
+    accCalc.addEventListener("click", calculateAcc);
+    accReset.addEventListener("click", () => {
+      for (const { input } of accInputs) input.value = "";
+      accResult.hidden = true;
+      accInputs[0].input.focus();
+    });
+    accOverlay.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && event.target.tagName === "INPUT") calculateAcc();
+      if (event.key === "Escape") closeAccModal();
     });
 
     if (location.protocol === "file:") {
