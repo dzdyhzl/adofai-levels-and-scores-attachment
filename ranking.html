@@ -1016,13 +1016,14 @@
       };
 
       pageNumbers.append(createButton("«", 1, false, current <= 1));
-      if (current > 2) pageNumbers.append(createDots());
-      if (current > 1) pageNumbers.append(createButton(String(current - 1), current - 1));
-      pageNumbers.append(createButton(String(current), current, true));
-      if (current < pages) pageNumbers.append(createButton(String(current + 1), current + 1));
-      if (pages - current >= 2) {
-        pageNumbers.append(createDots());
-        pageNumbers.append(createButton(String(pages), pages));
+      const numbers = new Set([1, pages, current]);
+      if (current > 1) numbers.add(current - 1);
+      if (current < pages) numbers.add(current + 1);
+      let previous = null;
+      for (const n of [...numbers].sort((a, b) => a - b)) {
+        if (previous != null && n - previous > 1) pageNumbers.append(createDots());
+        pageNumbers.append(createButton(String(n), n, n === current));
+        previous = n;
       }
       pageNumbers.append(createButton("»", pages, false, current >= pages));
     }
