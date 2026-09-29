@@ -1,8 +1,8 @@
 # TUF 谱面与成绩查询工具
 
-基于 [TUF（The Universal Forums）](https://tuforums.com) 公开 API 的 ADOFAI 谱面检索 / 详情工具，附带 X-Accuracy 计算器与分数公式整理资料。
+基于 [TUF（The Universal Forums）](https://tuforums.com) 公开 API 的 ADOFAI 谱面检索 / 详情 / 玩家排名工具，附带 X-Accuracy 计算器与分数公式整理资料。
 
-纯静态页面（HTML / CSS / 原生 JavaScript，无依赖、无构建），直接调用 `https://api.tuforums.com`。
+纯静态页面（HTML / CSS / 原生 JavaScript，无依赖、无构建），直接调用 `https://api.tuforums.com`。所有页面顶部均有导航栏（谱面搜索 / 玩家排名）。
 
 ## 功能
 
@@ -25,6 +25,13 @@
 - 通关记录表：准度、速度、判定明细、通过日期，支持按准度 / 速度 / 时间排序与分页
 - 快捷入口：进入 TUF 界面、下载谱面、观看演示视频
 
+### 玩家排名（ranking.html）
+
+- 通过 TUF API 获取玩家排行榜，默认按排位分数降序
+- 支持切换排序字段（排位分数 / 综合分数 / PP 分 / ScoreV2 总分 / WF 分 / 12K 分数 / 平均 XAcc / 通过数 / Universal 通过数 / WF 数）与升序、降序
+- 分页展示，每页 50 人
+- 展示头像、玩家名、国家、排位分数、PP 分、平均 XAcc、通过数、WF 数，点击玩家名进入 TUF 主页
+
 ### XAcc 计算器（Accuracy Calculator.py）
 
 输入六项判定（earlyDouble / earlySingle / ePerfect / perfect / lPerfect / lateSingle），自动计算 X-Accuracy 并弹窗显示结果。
@@ -44,8 +51,11 @@ python "Accuracy Calculator.py"
 .
 ├── index.html               # 谱面搜索页
 ├── level.html               # 谱面详情页
+├── ranking.html             # 玩家排名页
 ├── functions/
-│   └── v2/[[path]].js       # Cloudflare Pages Functions 代理（转发 /v2/* 到 TUF API）
+│   ├── _lib/proxy.js        # Cloudflare Pages Functions 代理逻辑（/v2、/v3 共用）
+│   ├── v2/[[path]].js       # 转发 /v2/* 到 TUF API
+│   └── v3/[[path]].js       # 转发 /v3/* 到 TUF API
 ├── Accuracy Calculator.py   # XAcc 计算器（Python + easygui）
 ├── TUF计算知识整理.md        # 分数计算知识整理
 ├── API doc.json             # TUF OpenAPI 文档（OpenAPI 3.0.3）
@@ -68,7 +78,7 @@ python -m http.server 8000
 
 TUF API 的 CORS 仅允许 `https://tuforums.com` 与 localhost，其他域名（如 `*.pages.dev`）会被浏览器拦截。因此仓库内置了 Pages Functions 代理：
 
-- `functions/v2/[[path]].js` 将同源的 `/v2/*` 请求转发到 `https://api.tuforums.com`
+- `functions/v2/[[path]].js`、`functions/v3/[[path]].js` 将同源的 `/v2/*`、`/v3/*` 请求转发到 `https://api.tuforums.com`
 - 页面在非 localhost 环境自动改用同源地址，并由代理函数返回响应
 
 将仓库连接到 Cloudflare Pages（构建命令留空，输出目录为根目录）即可，Functions 会随站点自动部署。
@@ -85,6 +95,7 @@ TUF API 的 CORS 仅允许 `https://tuforums.com` 与 localhost，其他域名�
 | `GET /v2/database/levels/{id}/cdnData` | CDN 文件元数据（下载用） |
 | `GET /v2/database/difficulties` | 难度列表与基础分 `baseScore` |
 | `GET /v2/database/passes/level/{levelId}` | 某谱面全部通关记录 |
+| `GET /v3/players/leaderboard` | 玩家排行榜（sortBy / order / limit / offset） |
 
 更多接口见 `API doc.json`。
 

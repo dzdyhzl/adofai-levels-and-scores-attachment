@@ -378,6 +378,48 @@
       color: var(--muted);
     }
 
+    .topNav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, .9);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topNavInner {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 20px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topNavLink {
+      display: inline-flex;
+      align-items: center;
+      height: 34px;
+      padding: 0 16px;
+      border-radius: 9px;
+      font-size: 14px;
+      color: #4b5563;
+      text-decoration: none;
+      transition: background .15s ease, color .15s ease;
+    }
+
+    .topNavLink:hover {
+      background: #f1f4fb;
+      color: var(--text);
+    }
+
+    .topNavLink.active {
+      background: var(--accent-soft);
+      color: #2b4bbf;
+      font-weight: 600;
+    }
+
     @media (max-width: 820px) {
       .infoLayout {
         grid-template-columns: 1fr;
@@ -411,6 +453,12 @@
 </head>
 
 <body>
+  <nav class="topNav">
+    <div class="topNavInner">
+      <a class="topNavLink active" href="index.html">谱面搜索</a>
+      <a class="topNavLink" href="ranking.html">玩家排名</a>
+    </div>
+  </nav>
   <header>
     <div class="brand">
       <div class="brandMark">TUF</div>
