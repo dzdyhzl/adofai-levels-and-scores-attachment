@@ -564,10 +564,18 @@
 
     sortField.addEventListener("change", () => load(1));
     sortOrder.addEventListener("change", () => load(1));
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     prevBtn.addEventListener("click", () => {
-      if (page > 1) load(page - 1);
+      if (page > 1) {
+        scrollToTop();
+        load(page - 1);
+      }
     });
     nextBtn.addEventListener("click", () => {
+      scrollToTop();
       load(page + 1);
     });
 

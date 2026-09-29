@@ -982,15 +982,21 @@
       });
     }
 
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     prevBtn.addEventListener("click", () => {
       if (page > 1) {
         page -= 1;
+        scrollToTop();
         renderTable();
       }
     });
 
     nextBtn.addEventListener("click", () => {
       page += 1;
+      scrollToTop();
       renderTable();
     });
 

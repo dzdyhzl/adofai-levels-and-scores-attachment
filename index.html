@@ -1330,11 +1330,21 @@
       if (!filterPanel.hidden) doSearch(1);
     });
 
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     prevBtn.addEventListener("click", () => {
-      if (searchState && searchState.page > 1) doSearch(searchState.page - 1);
+      if (searchState && searchState.page > 1) {
+        scrollToTop();
+        doSearch(searchState.page - 1);
+      }
     });
     nextBtn.addEventListener("click", () => {
-      if (searchState) doSearch(searchState.page + 1);
+      if (searchState) {
+        scrollToTop();
+        doSearch(searchState.page + 1);
+      }
     });
 
     queryBtn.addEventListener("click", query);
