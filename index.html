@@ -664,6 +664,18 @@
       </div>
 
       <div class="filterGroup">
+        <h3>初始 BPM 范围（闭区间，支持小数）</h3>
+        <div class="filterGrid">
+          <label>下限
+            <input id="minBpm" type="number" min="0" step="any" placeholder="最小 BPM">
+          </label>
+          <label>上限
+            <input id="maxBpm" type="number" min="0" step="any" placeholder="最大 BPM">
+          </label>
+        </div>
+      </div>
+
+      <div class="filterGroup">
         <h3>谱面 ID 范围</h3>
         <div class="filterGrid">
           <label>下限
@@ -770,6 +782,8 @@
     const maxHourInput = document.getElementById("maxHour");
     const minTilesInput = document.getElementById("minTiles");
     const maxTilesInput = document.getElementById("maxTiles");
+    const minBpmInput = document.getElementById("minBpm");
+    const maxBpmInput = document.getElementById("maxBpm");
     const minIdInput = document.getElementById("minId");
     const maxIdInput = document.getElementById("maxId");
     const sortIdInput = document.getElementById("sortId");
@@ -1069,6 +1083,11 @@
       const maxTiles = readNumber(maxTilesInput);
       if (maxTiles != null) filters.push(`tilecount:<=${Math.round(maxTiles)}`);
 
+      const minBpm = readNumber(minBpmInput);
+      if (minBpm != null) filters.push(`bpm:>=${minBpm}`);
+      const maxBpm = readNumber(maxBpmInput);
+      if (maxBpm != null) filters.push(`bpm:<=${maxBpm}`);
+
       const minId = readNumber(minIdInput);
       if (minId != null) filters.push(`id:>=${Math.round(minId)}`);
       const maxId = readNumber(maxIdInput);
@@ -1312,6 +1331,8 @@
       maxSecInput,
       minTilesInput,
       maxTilesInput,
+      minBpmInput,
+      maxBpmInput,
       minIdInput,
       maxIdInput
     ]) {
