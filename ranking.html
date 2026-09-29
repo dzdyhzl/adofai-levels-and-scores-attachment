@@ -448,6 +448,57 @@
       font-weight: 600;
     }
 
+    .rangeBlock {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid #eceef4;
+      border-radius: 12px;
+      background: #fbfcfe;
+      margin-bottom: 12px;
+    }
+
+    .rangeGrid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px 18px;
+    }
+
+    .rangeRow {
+      display: grid;
+      grid-template-columns: 92px 1fr 14px 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .rangeLabel {
+      font-size: 12.5px;
+      color: #5b6472;
+    }
+
+    .rangeRow input {
+      height: 34px;
+      padding: 0 10px;
+    }
+
+    .rangeDash {
+      text-align: center;
+      color: var(--faint);
+      font-size: 12px;
+    }
+
+    .rangeHint {
+      margin: 0;
+      font-size: 12px;
+      color: var(--faint);
+    }
+
+    @media (max-width: 760px) {
+      .rangeGrid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 560px) {
       header {
         padding-top: 24px;
@@ -497,6 +548,35 @@
         </label>
         <span id="boardMeta"></span>
       </div>
+      <div class="rangeBlock">
+        <div class="rangeGrid">
+          <div class="rangeRow">
+            <span class="rangeLabel">排位分数</span>
+            <input id="minRankedScore" type="number" placeholder="下限">
+            <span class="rangeDash">~</span>
+            <input id="maxRankedScore" type="number" placeholder="上限">
+          </div>
+          <div class="rangeRow">
+            <span class="rangeLabel">总分数</span>
+            <input id="minGeneralScore" type="number" placeholder="下限">
+            <span class="rangeDash">~</span>
+            <input id="maxGeneralScore" type="number" placeholder="上限">
+          </div>
+          <div class="rangeRow">
+            <span class="rangeLabel">PP 分</span>
+            <input id="minPpScore" type="number" placeholder="下限">
+            <span class="rangeDash">~</span>
+            <input id="maxPpScore" type="number" placeholder="上限">
+          </div>
+          <div class="rangeRow">
+            <span class="rangeLabel">平均 XAcc（%）</span>
+            <input id="minAverageXacc" type="number" min="0" max="100" step="any" placeholder="下限">
+            <span class="rangeDash">~</span>
+            <input id="maxAverageXacc" type="number" min="0" max="100" step="any" placeholder="上限">
+          </div>
+        </div>
+        <p class="rangeHint">多个范围可同时生效，可只填一侧；平均 XAcc 按百分数填写（如 99.5）。</p>
+      </div>
       <div class="tableWrap">
         <table>
           <thead>
@@ -531,7 +611,7 @@
 
     const SORT_FIELDS = [
       { field: "rankedScore", label: "排位分数" },
-      { field: "generalScore", label: "综合分数" },
+      { field: "generalScore", label: "总分数" },
       { field: "ppScore", label: "PP 分" },
       { field: "totalScoreV2", label: "ScoreV2 总分" },
       { field: "wfScore", label: "WF 分" },
@@ -554,9 +634,22 @@
     const nextBtn = document.getElementById("nextBtn");
     const pageInfo = document.getElementById("pageInfo");
 
+    const RANGE_FILTERS = [
+      { key: "rankedScore", min: "minRankedScore", max: "maxRankedScore" },
+      { key: "generalScore", min: "minGeneralScore", max: "maxGeneralScore" },
+      { key: "ppScore", min: "minPpScore", max: "maxPpScore" },
+      { key: "averageXacc", min: "minAverageXacc", max: "maxAverageXacc", percent: true }
+    ];
+
     let page = 1;
-    let total = 0;
+    let allPlayers = null;
     let loading = false;
+    let filterTimer = null;
+
+    for (const filter of RANGE_FILTERS) {
+      filter.minInput = document.getElementById(filter.min);
+      filter.maxInput = document.getElementById(filter.max);
+    }
 
     for (const { field, label } of SORT_FIELDS) {
       const option = document.createElement("option");
@@ -631,19 +724,76 @@
       return td;
     }
 
-    function renderTable(players) {
+    function readRangeValue(raw, percent) {
+      const text = raw.trim();
+      if (text === "") return null;
+      const value = Number(text);
+      if (!Number.isFinite(value)) return NaN;
+      return percent ? value / 100 : value;
+    }
+
+    function getActiveRanges() {
+      const ranges = [];
+      let invalid = false;
+      for (const filter of RANGE_FILTERS) {
+        const min = readRangeValue(filter.minInput.value, filter.percent);
+        const max = readRangeValue(filter.maxInput.value, filter.percent);
+        if (Number.isNaN(min) || Number.isNaN(max)) invalid = true;
+        if (min == null && max == null) continue;
+        ranges.push({ key: filter.key, min, max });
+      }
+      return { ranges, invalid };
+    }
+
+    function getFilteredPlayers() {
+      const { ranges } = getActiveRanges();
+      const direction = sortOrder.value === "asc" ? 1 : -1;
+      const field = sortField.value;
+      const fallback = direction === 1 ? Infinity : -Infinity;
+      const list = allPlayers.filter((player) =>
+        ranges.every(({ key, min, max }) => {
+          const value = Number(player[key]);
+          if (!Number.isFinite(value)) return false;
+          if (min != null && value < min) return false;
+          if (max != null && value > max) return false;
+          return true;
+        })
+      );
+      return list.sort((a, b) => {
+        const av = Number(a[field]);
+        const bv = Number(b[field]);
+        const an = Number.isFinite(av) ? av : fallback;
+        const bn = Number.isFinite(bv) ? bv : fallback;
+        if (an !== bn) return (an - bn) * direction;
+        return (Number(a.id) || 0) - (Number(b.id) || 0);
+      });
+    }
+
+    function renderPage() {
+      if (!allPlayers) return;
+      const { ranges, invalid } = getActiveRanges();
+      const list = getFilteredPlayers();
+      const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+      page = Math.min(Math.max(1, page), pages);
+      const start = (page - 1) * PAGE_SIZE;
+      const slice = list.slice(start, start + PAGE_SIZE);
+      const medalEligible =
+        sortField.value === "rankedScore" &&
+        sortOrder.value === "desc" &&
+        ranges.length === 0;
+
       boardBody.innerHTML = "";
-      players.forEach((player, index) => {
+      slice.forEach((player, index) => {
+        const position = start + index + 1;
         const row = document.createElement("tr");
-        const rankValue = Number(player.rank ?? (page - 1) * PAGE_SIZE + index + 1);
         const rankCell = document.createElement("td");
         rankCell.classList.add("num");
         const rankBadge = document.createElement("span");
         rankBadge.className = "rankBadge";
-        if (rankValue === 1) rankBadge.classList.add("top1");
-        else if (rankValue === 2) rankBadge.classList.add("top2");
-        else if (rankValue === 3) rankBadge.classList.add("top3");
-        rankBadge.textContent = Number.isFinite(rankValue) ? String(rankValue) : "—";
+        if (medalEligible && position === 1) rankBadge.classList.add("top1");
+        else if (medalEligible && position === 2) rankBadge.classList.add("top2");
+        else if (medalEligible && position === 3) rankBadge.classList.add("top3");
+        rankBadge.textContent = String(position);
         rankCell.append(rankBadge);
         const playerCell = document.createElement("td");
         playerCell.append(createPlayerBox(player));
@@ -660,42 +810,83 @@
         boardBody.append(row);
       });
 
-      const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-      page = Math.min(page, pages);
-      boardMeta.textContent = `共 ${total.toLocaleString("zh-CN")} 名玩家（每页 ${PAGE_SIZE} 人）`;
+      const filteredNote =
+        list.length === allPlayers.length ? "" : `，筛选后 ${list.length.toLocaleString("zh-CN")} 人`;
+      const invalidNote = invalid ? "，范围输入有无效数字" : "";
+      boardMeta.textContent = `共 ${allPlayers.length.toLocaleString("zh-CN")} 名玩家${filteredNote}${invalidNote}（每页 ${PAGE_SIZE} 人）`;
       pageInfo.textContent = `第 ${page} / ${pages} 页`;
       prevBtn.disabled = page <= 1;
       nextBtn.disabled = page >= pages;
       pager.hidden = false;
+      boardPanel.hidden = false;
     }
 
-    async function load(targetPage) {
+    const FETCH_LIMIT = 100;
+    const FETCH_BATCH = 8;
+
+    function slimPlayer(player) {
+      return {
+        id: player.id,
+        name: player.name,
+        country: player.country,
+        pfp: player.pfp,
+        rankedScore: player.rankedScore,
+        generalScore: player.generalScore,
+        ppScore: player.ppScore,
+        totalScoreV2: player.totalScoreV2,
+        wfScore: player.wfScore,
+        wfPPScore: player.wfPPScore,
+        score12K: player.score12K,
+        averageXacc: player.averageXacc,
+        totalPasses: player.totalPasses,
+        universalPassCount: player.universalPassCount,
+        worldsFirstCount: player.worldsFirstCount
+      };
+    }
+
+    async function fetchBoardPage(offset) {
+      const params = new URLSearchParams({
+        sortBy: "rankedScore",
+        order: "desc",
+        limit: String(FETCH_LIMIT),
+        offset: String(offset)
+      });
+      const res = await fetch(`${base}/v3/players/leaderboard?${params}`, {
+        credentials: "include",
+        headers: { Accept: "application/json" }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const results = Array.isArray(data.results) ? data.results : [];
+      return { count: Number(data.count) || results.length, results };
+    }
+
+    async function loadBoard() {
       if (loading) return;
       loading = true;
-      page = targetPage;
       statusPanel.hidden = false;
       boardPanel.hidden = true;
       statusEl.textContent = "加载中…";
       statusEl.classList.remove("error");
 
       try {
-        const params = new URLSearchParams({
-          sortBy: sortField.value,
-          order: sortOrder.value,
-          limit: String(PAGE_SIZE),
-          offset: String((page - 1) * PAGE_SIZE)
-        });
-        const res = await fetch(`${base}/v3/players/leaderboard?${params}`, {
-          credentials: "include",
-          headers: { Accept: "application/json" }
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const players = Array.isArray(data.results) ? data.results : [];
-        total = Number(data.count) || players.length;
-        renderTable(players);
+        const first = await fetchBoardPage(0);
+        const total = first.count;
+        const list = first.results.map(slimPlayer);
+        const offsets = [];
+        for (let offset = FETCH_LIMIT; offset < total; offset += FETCH_LIMIT) {
+          offsets.push(offset);
+        }
+        for (let i = 0; i < offsets.length; i += FETCH_BATCH) {
+          const batch = offsets.slice(i, i + FETCH_BATCH);
+          const lists = await Promise.all(batch.map(fetchBoardPage));
+          for (const item of lists) list.push(...item.results.map(slimPlayer));
+          statusEl.textContent = `加载中… ${Math.min(list.length, total).toLocaleString("zh-CN")} / ${total.toLocaleString("zh-CN")}`;
+        }
+        allPlayers = list;
+        page = 1;
+        renderPage();
         statusPanel.hidden = true;
-        boardPanel.hidden = false;
       } catch (error) {
         statusEl.textContent = `加载失败：${error.message}。线上部署请确认 functions/ 代理已生效，本地请通过 HTTP 服务器打开。`;
         statusEl.classList.add("error");
@@ -704,21 +895,46 @@
       }
     }
 
-    sortField.addEventListener("change", () => load(1));
-    sortOrder.addEventListener("change", () => load(1));
-    async function goToPage(targetPage) {
-      await load(targetPage);
-      boardPanel.scrollIntoView({ block: "start" });
+    function scheduleRender() {
+      if (!allPlayers) return;
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => {
+        page = 1;
+        renderPage();
+      }, 400);
+    }
+
+    sortField.addEventListener("change", () => {
+      if (allPlayers) {
+        page = 1;
+        renderPage();
+      }
+    });
+    sortOrder.addEventListener("change", () => {
+      if (allPlayers) {
+        page = 1;
+        renderPage();
+      }
+    });
+    for (const filter of RANGE_FILTERS) {
+      filter.minInput.addEventListener("input", scheduleRender);
+      filter.maxInput.addEventListener("input", scheduleRender);
     }
 
     prevBtn.addEventListener("click", () => {
-      if (page > 1) goToPage(page - 1);
+      if (page > 1) {
+        page -= 1;
+        renderPage();
+        boardPanel.scrollIntoView({ block: "start" });
+      }
     });
     nextBtn.addEventListener("click", () => {
-      goToPage(page + 1);
+      page += 1;
+      renderPage();
+      boardPanel.scrollIntoView({ block: "start" });
     });
 
-    load(1);
+    loadBoard();
   </script>
 </body>
 
