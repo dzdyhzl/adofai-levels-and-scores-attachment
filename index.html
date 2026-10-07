@@ -795,11 +795,6 @@
       const base = API_BASE;
       const id = idInput.value.trim();
       const song = songInput.value.trim();
-      if (!id && !song && !buildQuery()) {
-        statusEl.textContent = "请输入谱面 ID、谱面名或至少一个筛选条件";
-        statusEl.classList.add("error");
-        return;
-      }
 
       if (id) {
         queryBtn.disabled = true;
