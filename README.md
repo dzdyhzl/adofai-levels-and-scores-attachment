@@ -15,7 +15,7 @@
 - 排序：谱面 ID / 时长 / 总轨道数，支持多级优先级
 - 特殊难度（Unranked / Impossible / Censored / P0 / GQ / UQ）默认隐藏，勾选后展示
 - 结果卡片：常规信息、评级明细（按需加载）、原始响应，并支持从 CDN 下载谱面
-- 分页浏览（每页 20 条），页码条支持首末页跳转与跳转至指定页，点击卡片进入详情页
+- 分页浏览（每页 20 条）：翻页时自动跳过被名称/难度筛选排除的谱面，保证每页展示的都是满足筛选条件的结果；页码条支持首末页跳转与跳转至指定页，点击卡片进入详情页
 - 右下角「准度计算」悬浮按钮：输入六项判定数量即可计算 XAcc，结果精确到 0.0001%
 
 ### 谱面详情（level.html）
@@ -38,7 +38,7 @@
 
 谱面搜索页右下角「准度计算」按钮：输入六项判定（earlyDouble / earlySingle / ePerfect / perfect / lPerfect / lateSingle），自动计算 X-Accuracy，结果精确到 0.0001%。
 
-### 计算资料（知识库/TUF计算知识整理.md）
+### 计算资料（knowledge base/TUF计算知识整理.md）
 
 整理 TUF 分数体系的数据来源、判定权重、XAcc 公式、单曲 Score 公式与 B20 算法，是页面之外的计算参考文档。
 
@@ -59,7 +59,7 @@
 │   ├── _lib/proxy.js        # Cloudflare Pages Functions 代理逻辑（/v2、/v3 共用，带路径白名单）
 │   ├── v2/[[path]].js       # 转发 /v2/* 到 TUF API
 │   └── v3/[[path]].js       # 转发 /v3/* 到 TUF API
-└── 知识库/
+└── knowledge base/
     ├── API doc.json         # TUF OpenAPI 文档（OpenAPI 3.0.3，参考资料）
     ├── TUF计算知识整理.md    # 分数计算知识整理
     └── PP分计算公式.jpg      # Score 公式原图
@@ -67,7 +67,11 @@
 
 ## 使用方法
 
-### 本地运行
+### 在线访问（推荐）
+
+直接打开 <https://adofai-levels-and-scores-attachment.pages.dev/>，无需本地环境。
+
+### 本地运行（可选）
 
 页面需通过本地 HTTP 服务器打开（直接双击以 `file://` 打开会被浏览器 CORS 拦截）：
 
@@ -81,7 +85,7 @@ python -m http.server 8000
 
 TUF API 的 CORS 仅允许 `https://tuforums.com` 与 localhost，其他域名（如 `*.pages.dev`）会被浏览器拦截。因此仓库内置了 Pages Functions 代理：
 
-- `functions/v2/[[path]].js`、`functions/v3/[[path]].js` 将同源的 `/v2/*`、`/v3/*` 请求转发到 `https://api.tuforums.com`
+- `functions/v2/[[path]].js`、`functions/v3/[[path]].js` 将同源的 `/v2/*`、`/v3/*` 请求转发到 `https://api.tuforums.com`（带路径白名单）
 - 页面在非 localhost 环境自动改用同源地址，并由代理函数返回响应
 
 将仓库连接到 Cloudflare Pages（构建命令留空，输出目录为根目录）即可，Functions 会随站点自动部署。
@@ -100,7 +104,7 @@ TUF API 的 CORS 仅允许 `https://tuforums.com` 与 localhost，其他域名�
 | `GET /v2/database/passes/level/{levelId}` | 某谱面全部通关记录 |
 | `GET /v3/players/leaderboard` | 玩家排行榜（sortBy / order / limit / offset） |
 
-更多接口见 `知识库/API doc.json`。
+更多接口见 `knowledge base/API doc.json`。
 
 ## 公式摘要
 
@@ -114,4 +118,4 @@ B20   = Σ(i=1..20) s_i · 0.9^(i-1)
 
 其中 `B` 为关卡基础分，`x` 为 XAcc，`s` 为播放倍数，`a_m = max(0, m - floor(t/315))`（`m` 为空敲数，`t` 为方块数），`f` 为是否非长按默认设置。
 
-各分段函数的完整定义见 [知识库/TUF计算知识整理.md](知识库/TUF计算知识整理.md)。
+各分段函数的完整定义见 [knowledge base/TUF计算知识整理.md](knowledge%20base/TUF计算知识整理.md)。

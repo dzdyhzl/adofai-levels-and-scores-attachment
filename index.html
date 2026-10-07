@@ -230,6 +230,10 @@
     let filterTimer = null;
     let lastPages = 1;
     let searchToken = 0;
+    let scannedLevels = [];
+    let eligibleLevels = [];
+    let serverTotal = 0;
+    let serverExhausted = false;
 
     const SPECIAL_DIFFICULTY_GROUPS = [
       { key: "Unranked", match: (name) => /^unranked$/i.test(name) },
@@ -253,12 +257,11 @@
         label.className = "check";
         label.append(input, document.createTextNode(group.key));
         input.addEventListener("change", () => {
-          if (!filterPanel.hidden) applyCardFilters();
+          if (!filterPanel.hidden) refreshFiltered();
         });
         diffChecks.append(label);
         specialDifficultyInputs.push({ ids, input });
       }
-      if (!filterPanel.hidden) applyCardFilters();
     }
 
     buildSpecialDifficultyInputs();
@@ -575,10 +578,12 @@
         .forEach((card) => resultCards.append(card));
     }
 
-    async function searchLevels(base, query, page) {
+    async function fetchLevelsChunk(token) {
+      const base = API_BASE;
+      const query = buildQuery();
       const params = new URLSearchParams({
         limit: String(SEARCH_LIMIT),
-        offset: String((page - 1) * SEARCH_LIMIT),
+        offset: String(scannedLevels.length),
         sort: buildSortParam()
       });
       if (query) params.set("query", query);
@@ -587,21 +592,185 @@
         headers: { Accept: "application/json" }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
+      const data = await res.json();
+      if (token !== searchToken) return null;
+      serverTotal = Number(data.total) || serverTotal;
+      const results = Array.isArray(data.results) ? data.results : [];
+      scannedLevels.push(...results);
+      const state = getFilterState();
+      for (const level of results) {
+        if (matchesFilters(levelFilterMeta(level), state)) {
+          eligibleLevels.push(level);
+        }
+      }
+      if (!results.length || scannedLevels.length >= serverTotal) {
+        serverExhausted = true;
+      }
+      return results.length;
     }
 
-    async function renderResults(base, results) {
+    async function ensureEligible(page, token) {
+      while (!serverExhausted && eligibleLevels.length < page * SEARCH_LIMIT) {
+        const got = await fetchLevelsChunk(token);
+        if (got === null) return false;
+      }
+      return true;
+    }
+
+    async function renderEligiblePage(page) {
+      const knownPages = Math.max(1, Math.ceil(eligibleLevels.length / SEARCH_LIMIT));
+      const safePage = serverExhausted
+        ? Math.min(Math.max(1, page), knownPages)
+        : Math.max(1, page);
+      searchState = { page: safePage };
+
+      const start = (safePage - 1) * SEARCH_LIMIT;
+      const slice = eligibleLevels.slice(start, start + SEARCH_LIMIT);
       resultCards.innerHTML = "";
       let index = 0;
-      for (const level of results) {
-        const difficulty = await resolveDifficulty(base, level);
-        const card = createLevelCard(base, level, difficulty);
+      for (const level of slice) {
+        const difficulty = await resolveDifficulty(API_BASE, level);
+        const card = createLevelCard(API_BASE, level, difficulty);
         card.classList.add("cardIn");
         card.style.animationDelay = `${index * 30}ms`;
         index += 1;
         resultCards.append(card);
       }
       sortRenderedCards();
+      updatePager(safePage);
+    }
+
+    function getFilterState() {
+      const rawInput = songInput.value.trim();
+      const exactMode = matchModeInput.value === "exact";
+      const fuzzyTokenList = exactMode ? [] : fuzzyTokens(rawInput);
+      const excluded = new Set(
+        specialDifficultyInputs
+          .filter((item) => !item.input.checked)
+          .flatMap((item) => item.ids)
+      );
+      const minRank = parseDiffRank(minDiffInput.value);
+      const maxRank = parseDiffRank(maxDiffInput.value);
+      const diffRangeInvalid =
+        (minDiffInput.value.trim() && minRank == null) ||
+        (maxDiffInput.value.trim() && maxRank == null);
+      return {
+        exactMode,
+        exactQuery: rawInput.toLowerCase(),
+        fuzzyTokenList,
+        excluded,
+        minRank,
+        maxRank,
+        diffRangeInvalid
+      };
+    }
+
+    function levelFilterMeta(level) {
+      const searchParts = [level.song, level.suffix, level.artist, level.creator];
+      if (Array.isArray(level.levelCredits)) {
+        for (const credit of level.levelCredits) {
+          searchParts.push(credit?.creator?.name);
+        }
+      }
+      return {
+        search: normalizeText(searchParts.filter(Boolean).join(" ")),
+        songRaw: [level.song, level.suffix].filter(Boolean).join(" ").toLowerCase(),
+        diffId: level.diffId ?? ""
+      };
+    }
+
+    function matchesFilters(meta, state) {
+      if (state.diffRangeInvalid) return false;
+      if (state.exactMode) {
+        if (state.exactQuery && !(meta.songRaw || "").includes(state.exactQuery)) {
+          return false;
+        }
+      } else if (state.fuzzyTokenList.length) {
+        const haystack = meta.search || "";
+        if (!state.fuzzyTokenList.every((token) => haystack.includes(token))) {
+          return false;
+        }
+      }
+      if (state.excluded.has(String(meta.diffId))) return false;
+      const diffId = Number(meta.diffId);
+      const isPgu = Number.isInteger(diffId) && diffId >= 1 && diffId <= 60;
+      if (state.minRank != null || state.maxRank != null) {
+        if (!isPgu) return false;
+        if (state.minRank != null && diffId < state.minRank) return false;
+        if (state.maxRank != null && diffId > state.maxRank) return false;
+      }
+      return true;
+    }
+
+    function recomputeEligible() {
+      const state = getFilterState();
+      eligibleLevels = state.diffRangeInvalid
+        ? []
+        : scannedLevels.filter((level) => matchesFilters(levelFilterMeta(level), state));
+    }
+
+    async function refreshFiltered() {
+      const token = ++searchToken;
+      recomputeEligible();
+      const page = searchState ? searchState.page : 1;
+      try {
+        const ok = await ensureEligible(page, token);
+        if (!ok) return;
+        await renderEligiblePage(page);
+      } catch (error) {
+        statusEl.textContent = `查询失败：${error.message}。线上部署请确认 functions/ 代理已生效，本地请通过 HTTP 服务器打开。`;
+        statusEl.classList.add("error");
+      }
+    }
+
+    function updatePager(page) {
+      const knownPages = Math.max(1, Math.ceil(eligibleLevels.length / SEARCH_LIMIT));
+      lastPages = serverExhausted ? knownPages : knownPages + 1;
+      const pageLabel = serverExhausted
+        ? `第 ${page} / ${knownPages} 页（每页 ${SEARCH_LIMIT} 条）`
+        : `第 ${page} 页（每页 ${SEARCH_LIMIT} 条）`;
+      resultMeta.textContent =
+        eligibleLevels.length === 0 && serverExhausted
+          ? "未找到匹配的谱面"
+          : `符合筛选条件 ${serverExhausted ? eligibleLevels.length : `≥${eligibleLevels.length}`} 条（已扫描 ${scannedLevels.length} / ${serverTotal}），${pageLabel}`;
+      renderPageNumbers(pageNumbers, page, serverExhausted ? knownPages : null, goToPage);
+      pager.hidden = eligibleLevels.length === 0 && serverExhausted;
+    }
+
+    async function doSearch(page, options = {}) {
+      const token = ++searchToken;
+      if (options.fresh !== false) {
+        scannedLevels = [];
+        eligibleLevels = [];
+        serverTotal = 0;
+        serverExhausted = false;
+      }
+      queryBtn.disabled = true;
+      statusEl.textContent = "查询中…";
+      statusEl.classList.remove("error");
+      statusEl.classList.add("loading");
+      resultEl.hidden = true;
+
+      try {
+        const filled = await ensureEligible(page, token);
+        if (!filled) return false;
+        await renderEligiblePage(page);
+        statusEl.textContent = `搜索成功：${buildQuery() || "全部谱面"}`;
+        statusEl.classList.remove("error");
+        statusEl.classList.remove("loading");
+        filterPanel.hidden = false;
+        resultEl.hidden = false;
+        return true;
+      } catch (error) {
+        if (token !== searchToken) return false;
+        resultEl.hidden = true;
+        statusEl.textContent = `查询失败：${error.message}。线上部署请确认 functions/ 代理已生效，本地请通过 HTTP 服务器打开。`;
+        statusEl.classList.add("error");
+        statusEl.classList.remove("loading");
+        return true;
+      } finally {
+        if (token === searchToken) queryBtn.disabled = false;
+      }
     }
 
     function parseDiffRank(raw) {
@@ -620,110 +789,6 @@
         return num >= 1 && num <= 60 ? num : null;
       }
       return null;
-    }
-
-    function applyCardFilters() {
-      if (!searchState) return;
-      const rawInput = songInput.value.trim();
-      const exactMode = matchModeInput.value === "exact";
-      const exactQuery = rawInput.toLowerCase();
-      const fuzzyTokenList = exactMode ? [] : fuzzyTokens(rawInput);
-      const excluded = new Set(
-        specialDifficultyInputs
-          .filter((item) => !item.input.checked)
-          .flatMap((item) => item.ids)
-      );
-      const minRank = parseDiffRank(minDiffInput.value);
-      const maxRank = parseDiffRank(maxDiffInput.value);
-      const diffRangeInvalid =
-        (minDiffInput.value.trim() && minRank == null) ||
-        (maxDiffInput.value.trim() && maxRank == null);
-      let hiddenCount = 0;
-      for (const card of resultCards.children) {
-        let nameMatches = true;
-        if (exactMode) {
-          if (exactQuery) {
-            nameMatches = (card.dataset.songRaw || "").includes(exactQuery);
-          }
-        } else if (fuzzyTokenList.length) {
-          const haystack = card.dataset.search || "";
-          nameMatches = fuzzyTokenList.every((token) => haystack.includes(token));
-        }
-        const diffId = Number(card.dataset.diffId);
-        const isPgu = Number.isInteger(diffId) && diffId >= 1 && diffId <= 60;
-        const inDiffRange =
-          minRank == null && maxRank == null
-            ? true
-            : isPgu &&
-              (minRank == null || diffId >= minRank) &&
-              (maxRank == null || diffId <= maxRank);
-        const shouldHide =
-          diffRangeInvalid ||
-          !nameMatches ||
-          excluded.has(card.dataset.diffId) ||
-          !inDiffRange;
-        card.hidden = shouldHide;
-        if (shouldHide) hiddenCount += 1;
-      }
-      updatePager(hiddenCount, diffRangeInvalid);
-    }
-
-    function updatePager(hiddenCount = 0, diffRangeInvalid = false) {
-      if (!searchState) return;
-      const total = searchState.total;
-      const pages = Math.max(1, Math.ceil(total / searchState.limit));
-      const page = Math.min(searchState.page, pages);
-      const invalidNote = diffRangeInvalid ? "，难度格式无效（应为 P1~U20）" : "";
-      const hiddenNote =
-        hiddenCount > 0 ? `，本页隐藏 ${hiddenCount} 条（名称/难度过滤）` : "";
-      resultMeta.textContent =
-        total === 0
-          ? "未找到匹配的谱面"
-          : `共 ${total} 条结果，第 ${page} / ${pages} 页（每页 ${searchState.limit} 条${hiddenNote}${invalidNote}）`;
-      lastPages = pages;
-      renderPageNumbers(pageNumbers, page, pages, goToPage);
-      pager.hidden = total === 0;
-    }
-
-    async function doSearch(page) {
-      const token = ++searchToken;
-      const base = API_BASE;
-      const query = buildQuery();
-      queryBtn.disabled = true;
-      statusEl.textContent = "查询中…";
-      statusEl.classList.remove("error");
-      statusEl.classList.add("loading");
-
-      try {
-        const data = await searchLevels(base, query, page);
-        if (token !== searchToken) return false;
-        const results = Array.isArray(data.results) ? data.results : [];
-        await renderResults(base, results);
-        if (token !== searchToken) return false;
-        searchState = {
-          base,
-          query,
-          page,
-          limit: SEARCH_LIMIT,
-          total: data.total ?? results.length
-        };
-        filterPanel.hidden = false;
-        applyCardFilters();
-        statusEl.textContent = `搜索成功：${query || "全部谱面"}`;
-        statusEl.classList.remove("error");
-        statusEl.classList.remove("loading");
-        resultEl.hidden = false;
-        return true;
-      } catch (error) {
-        if (token !== searchToken) return false;
-        resultEl.hidden = true;
-        statusEl.textContent = `查询失败：${error.message}。线上部署请确认 functions/ 代理已生效，本地请通过 HTTP 服务器打开。`;
-        statusEl.classList.add("error");
-        statusEl.classList.remove("loading");
-        return true;
-      } finally {
-        if (token === searchToken) queryBtn.disabled = false;
-      }
     }
 
     async function query() {
@@ -810,7 +875,7 @@
 
     for (const control of [minDiffInput, maxDiffInput]) {
       control.addEventListener("input", () => {
-        if (!filterPanel.hidden) applyCardFilters();
+        if (!filterPanel.hidden) refreshFiltered();
       });
     }
     matchModeInput.addEventListener("change", () => {
@@ -818,7 +883,7 @@
     });
 
     async function goToPage(targetPage) {
-      const rendered = await doSearch(targetPage);
+      const rendered = await doSearch(targetPage, { fresh: false });
       if (rendered) resultEl.scrollIntoView({ block: "start" });
     }
 

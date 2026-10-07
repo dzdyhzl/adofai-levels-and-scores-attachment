@@ -130,6 +130,8 @@ async function resolveDifficulty(base, levelData) {
 
 function renderPageNumbers(container, current, pages, goToPageFn) {
   container.innerHTML = "";
+  const lastKnown = typeof pages === "number" && Number.isFinite(pages);
+  const lastPage = lastKnown ? pages : null;
   const createButton = (label, target, isCurrent = false, isDisabled = false) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -147,16 +149,18 @@ function renderPageNumbers(container, current, pages, goToPageFn) {
   };
 
   container.append(createButton("«", 1, false, current <= 1));
-  const numbers = new Set([1, pages, current]);
+  const numbers = new Set([1, current]);
+  if (lastKnown) numbers.add(lastPage);
   if (current > 1) numbers.add(current - 1);
-  if (current < pages) numbers.add(current + 1);
+  if (!lastKnown || current < lastPage) numbers.add(current + 1);
   let previous = null;
-  for (const n of [...numbers].sort((a, b) => a - b)) {
+  for (const n of [...numbers].filter((n) => Number.isFinite(n)).sort((a, b) => a - b)) {
     if (previous != null && n - previous > 1) container.append(createDots());
     container.append(createButton(String(n), n, n === current));
     previous = n;
   }
-  container.append(createButton("»", pages, false, current >= pages));
+  if (!lastKnown) container.append(createDots());
+  container.append(createButton("»", lastPage ?? current, false, !lastKnown || current >= lastPage));
 }
 
 function setupTopNavScroll() {
