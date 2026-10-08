@@ -225,9 +225,13 @@
 
       if (level.videoLink) {
         videoBtn.disabled = false;
-        videoBtn.addEventListener("click", () => {
-          window.open(level.videoLink, "_blank", "noopener");
-        });
+        videoBtn.textContent = "观看演示视频";
+        if (!videoBtn.dataset.bound) {
+          videoBtn.dataset.bound = "true";
+          videoBtn.addEventListener("click", () => {
+            if (level?.videoLink) window.open(level.videoLink, "_blank", "noopener");
+          });
+        }
       } else {
         videoBtn.disabled = true;
         videoBtn.textContent = "无演示视频";

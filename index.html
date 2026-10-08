@@ -252,6 +252,7 @@
     let eligibleLevels = [];
     let serverTotal = 0;
     let serverExhausted = false;
+    let lastScanQuery = null;
 
     const SPECIAL_DIFFICULTY_GROUPS = [
       { key: "Unranked", match: (name) => /^unranked$/i.test(name) },
@@ -624,6 +625,13 @@
     async function fetchLevelsChunk(token) {
       const base = API_BASE;
       const query = buildQuery();
+      if (lastScanQuery !== null && query !== lastScanQuery) {
+        scannedLevels = [];
+        eligibleLevels = [];
+        serverTotal = 0;
+        serverExhausted = false;
+      }
+      lastScanQuery = query;
       const params = new URLSearchParams({
         limit: String(SEARCH_LIMIT),
         offset: String(scannedLevels.length),
@@ -795,10 +803,15 @@
         : scannedLevels.filter((level) => matchesFilters(levelFilterMeta(level), state));
     }
 
+    let refreshInFlight = false;
+
     async function refreshFiltered() {
+      if (refreshInFlight) return;
+      refreshInFlight = true;
       const token = ++searchToken;
       recomputeEligible();
       const page = searchState ? searchState.page : 1;
+      statusEl.classList.add("loading");
       try {
         const ok = await ensureEligible(page, token);
         if (!ok) return;
@@ -806,6 +819,9 @@
       } catch (error) {
         statusEl.textContent = `查询失败：${error.message}。线上部署请确认 functions/ 代理已生效，本地请通过 HTTP 服务器打开。`;
         statusEl.classList.add("error");
+      } finally {
+        statusEl.classList.remove("loading");
+        refreshInFlight = false;
       }
     }
 
@@ -830,6 +846,7 @@
         eligibleLevels = [];
         serverTotal = 0;
         serverExhausted = false;
+        lastScanQuery = null;
       }
       queryBtn.disabled = true;
       statusEl.textContent = "查询中…";
