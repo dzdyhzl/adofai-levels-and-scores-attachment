@@ -33,18 +33,27 @@
           <label>谱面 ID
             <input id="levelId" placeholder="精确 ID（可选）">
           </label>
-          <label>谱面名
-            <input id="songName" placeholder="歌名（可选）">
+          <label>匹配模式
             <select id="matchMode">
               <option value="fuzzy">模糊匹配（忽略空格与标点）</option>
               <option value="exact">精确匹配（空格标点须正确，可截断）</option>
             </select>
-            <select id="exactField" hidden>
-              <option value="song">搜索歌名</option>
-              <option value="artist">搜索曲师</option>
-              <option value="charter">搜索采音师</option>
-              <option value="vfxer">搜索特效师</option>
-            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label>歌名
+            <input id="songName" placeholder="如 Hello (BPM)（可选）">
+          </label>
+          <label>曲师
+            <input id="artistName" placeholder="如 Camellia（可选）">
+          </label>
+        </div>
+        <div class="row">
+          <label>采音师
+            <input id="charterName" placeholder="如 Nephrolepis（可选）">
+          </label>
+          <label>特效师
+            <input id="vfxerName" placeholder="如 2seehyun（可选）">
           </label>
         </div>
       </div>
@@ -159,7 +168,7 @@
         </div>
       </div>
 
-      <p class="hint">模糊匹配按空格分词（标点忽略），每个词需作为连续片段出现在谱面相关信息中，词之间可省略其他内容（如 hello bpm → Hello (BPM)）；精确匹配须保持原空格与标点、可只输入一部分（如 Hello (BPM），并可选在歌名 / 曲师 / 采音师 / 特效师中搜索。难度范围按 P1~P20 → G1~G20 → U1~U20 排序（如 P5、G10、U20），范围外的谱面在本页内隐藏。未勾选的特殊难度在本页内隐藏（以上过滤不影响服务端分页总数）。</p>
+      <p class="hint">模糊匹配按空格分词（标点忽略），歌名的词匹配谱面相关信息，曲师 / 采音师 / 特效师的词按对应字段匹配，词之间可省略其他内容；精确匹配须保持原空格与标点、可只输入一部分（如 Hello (BPM），按对应字段部分匹配。四个搜索栏可同时填写（AND 组合）。难度范围按 P1~P20 → G1~G20 → U1~U20 排序（如 P5、G10、U20），范围外的谱面在本页内隐藏。未勾选的特殊难度在本页内隐藏（以上过滤不影响服务端分页总数）。</p>
     </section>
 
     <section class="panel" id="result" hidden>
@@ -202,8 +211,10 @@
 
     const idInput = document.getElementById("levelId");
     const songInput = document.getElementById("songName");
+    const artistInput = document.getElementById("artistName");
+    const charterInput = document.getElementById("charterName");
+    const vfxerInput = document.getElementById("vfxerName");
     const matchModeInput = document.getElementById("matchMode");
-    const exactFieldInput = document.getElementById("exactField");
     const queryBtn = document.getElementById("queryBtn");
     const statusEl = document.getElementById("status");
     const resultEl = document.getElementById("result");
@@ -522,17 +533,41 @@
       if (maxId != null) filters.push(`id:<=${Math.round(maxId)}`);
 
       const raw = songInput.value.trim();
-      if (!raw) return filters.join(", ");
+      const artist = artistInput.value.trim();
+      const charter = charterInput.value.trim();
+      const vfxer = vfxerInput.value.trim();
+      const exactMode = matchModeInput.value === "exact";
 
-      if (matchModeInput.value === "exact") {
-        const field = exactFieldInput.value;
-        return [`${field}:${raw}`, ...filters].join(", ");
+      if (raw) {
+        if (exactMode) {
+          filters.push(`song:${raw}`);
+        } else {
+          for (const token of fuzzyTokens(raw)) filters.push(token);
+        }
+      }
+      if (artist) {
+        if (exactMode) {
+          filters.push(`artist:${artist}`);
+        } else {
+          for (const token of fuzzyTokens(artist)) filters.push(`artist:${token}`);
+        }
+      }
+      if (charter) {
+        if (exactMode) {
+          filters.push(`charter:${charter}`);
+        } else {
+          for (const token of fuzzyTokens(charter)) filters.push(`charter:${token}`);
+        }
+      }
+      if (vfxer) {
+        if (exactMode) {
+          filters.push(`vfxer:${vfxer}`);
+        } else {
+          for (const token of fuzzyTokens(vfxer)) filters.push(`vfxer:${token}`);
+        }
       }
 
-      const tokens = fuzzyTokens(raw);
-      const clause = tokens.join(", ");
-      if (!clause) return filters.join(", ");
-      return [clause, ...filters].join(", ");
+      return filters.join(", ");
     }
 
     const sortControls = [
@@ -649,9 +684,7 @@
     }
 
     function getFilterState() {
-      const rawInput = songInput.value.trim();
       const exactMode = matchModeInput.value === "exact";
-      const fuzzyTokenList = exactMode ? [] : fuzzyTokens(rawInput);
       const excluded = new Set(
         specialDifficultyInputs
           .filter((item) => !item.input.checked)
@@ -664,9 +697,14 @@
         (maxDiffInput.value.trim() && maxRank == null);
       return {
         exactMode,
-        exactField: exactFieldInput.value,
-        exactQuery: rawInput.toLowerCase(),
-        fuzzyTokenList,
+        songExact: songInput.value.trim().toLowerCase(),
+        artistExact: artistInput.value.trim().toLowerCase(),
+        charterExact: charterInput.value.trim().toLowerCase(),
+        vfxerExact: vfxerInput.value.trim().toLowerCase(),
+        songTokens: exactMode ? [] : fuzzyTokens(songInput.value),
+        artistTokens: exactMode ? [] : fuzzyTokens(artistInput.value),
+        charterTokens: exactMode ? [] : fuzzyTokens(charterInput.value),
+        vfxerTokens: exactMode ? [] : fuzzyTokens(vfxerInput.value),
         excluded,
         minRank,
         maxRank,
@@ -701,19 +739,41 @@
     function matchesFilters(meta, state) {
       if (state.diffRangeInvalid) return false;
       if (state.exactMode) {
-        if (state.exactQuery) {
-          const fieldMap = {
-            song: meta.songRaw || "",
-            artist: meta.artistRaw || "",
-            charter: meta.charterRaw || "",
-            vfxer: meta.vfxerRaw || ""
-          };
-          const haystack = fieldMap[state.exactField] ?? "";
-          if (!haystack.includes(state.exactQuery)) return false;
+        if (state.songExact && !(meta.songRaw || "").includes(state.songExact)) {
+          return false;
         }
-      } else if (state.fuzzyTokenList.length) {
-        const haystack = meta.search || "";
-        if (!state.fuzzyTokenList.every((token) => haystack.includes(token))) {
+        if (state.artistExact && !(meta.artistRaw || "").includes(state.artistExact)) {
+          return false;
+        }
+        if (state.charterExact && !(meta.charterRaw || "").includes(state.charterExact)) {
+          return false;
+        }
+        if (state.vfxerExact && !(meta.vfxerRaw || "").includes(state.vfxerExact)) {
+          return false;
+        }
+      } else {
+        if (
+          state.songTokens.length &&
+          !state.songTokens.every((token) => (meta.search || "").includes(token))
+        ) {
+          return false;
+        }
+        if (
+          state.artistTokens.length &&
+          !state.artistTokens.every((token) => (meta.artistRaw || "").includes(token))
+        ) {
+          return false;
+        }
+        if (
+          state.charterTokens.length &&
+          !state.charterTokens.every((token) => (meta.charterRaw || "").includes(token))
+        ) {
+          return false;
+        }
+        if (
+          state.vfxerTokens.length &&
+          !state.vfxerTokens.every((token) => (meta.vfxerRaw || "").includes(token))
+        ) {
           return false;
         }
       }
@@ -899,18 +959,9 @@
         if (!filterPanel.hidden) refreshFiltered();
       });
     }
-    function syncExactFieldVisibility() {
-      exactFieldInput.hidden = matchModeInput.value !== "exact";
-    }
-
     matchModeInput.addEventListener("change", () => {
-      syncExactFieldVisibility();
       if (!filterPanel.hidden) doSearch(1);
     });
-    exactFieldInput.addEventListener("change", () => {
-      if (!filterPanel.hidden) doSearch(1);
-    });
-    syncExactFieldVisibility();
 
     async function goToPage(targetPage) {
       const rendered = await doSearch(targetPage, { fresh: false });
@@ -931,12 +982,11 @@
     });
 
     queryBtn.addEventListener("click", query);
-    idInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") query();
-    });
-    songInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") query();
-    });
+    for (const input of [idInput, songInput, artistInput, charterInput, vfxerInput]) {
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") query();
+      });
+    }
 
     const accFab = document.getElementById("accFab");
     const accOverlay = document.getElementById("accOverlay");
