@@ -39,6 +39,12 @@
               <option value="fuzzy">模糊匹配（忽略空格与标点）</option>
               <option value="exact">精确匹配（空格标点须正确，可截断）</option>
             </select>
+            <select id="exactField" hidden>
+              <option value="song">搜索歌名</option>
+              <option value="artist">搜索曲师</option>
+              <option value="charter">搜索采音师</option>
+              <option value="vfxer">搜索特效师</option>
+            </select>
           </label>
         </div>
       </div>
@@ -153,7 +159,7 @@
         </div>
       </div>
 
-      <p class="hint">模糊匹配按空格分词（标点忽略），每个词需作为连续片段出现在歌名中，词之间可省略其他内容（如 hello bpm → Hello (BPM)）；精确匹配须保持原空格与标点，但可只输入一部分（如 Hello (BPM）。难度范围按 P1~P20 → G1~G20 → U1~U20 排序（如 P5、G10、U20），范围外的谱面在本页内隐藏。未勾选的特殊难度在本页内隐藏（以上过滤不影响服务端分页总数）。</p>
+      <p class="hint">模糊匹配按空格分词（标点忽略），每个词需作为连续片段出现在谱面相关信息中，词之间可省略其他内容（如 hello bpm → Hello (BPM)）；精确匹配须保持原空格与标点、可只输入一部分（如 Hello (BPM），并可选在歌名 / 曲师 / 采音师 / 特效师中搜索。难度范围按 P1~P20 → G1~G20 → U1~U20 排序（如 P5、G10、U20），范围外的谱面在本页内隐藏。未勾选的特殊难度在本页内隐藏（以上过滤不影响服务端分页总数）。</p>
     </section>
 
     <section class="panel" id="result" hidden>
@@ -197,6 +203,7 @@
     const idInput = document.getElementById("levelId");
     const songInput = document.getElementById("songName");
     const matchModeInput = document.getElementById("matchMode");
+    const exactFieldInput = document.getElementById("exactField");
     const queryBtn = document.getElementById("queryBtn");
     const statusEl = document.getElementById("status");
     const resultEl = document.getElementById("result");
@@ -518,11 +525,12 @@
       if (!raw) return filters.join(", ");
 
       if (matchModeInput.value === "exact") {
-        return [raw, ...filters].join(", ");
+        const field = exactFieldInput.value;
+        return [`${field}:${raw}`, ...filters].join(", ");
       }
 
       const tokens = fuzzyTokens(raw);
-      const clause = tokens.map((token) => `song:${token}`).join(", ");
+      const clause = tokens.join(", ");
       if (!clause) return filters.join(", ");
       return [clause, ...filters].join(", ");
     }
@@ -656,6 +664,7 @@
         (maxDiffInput.value.trim() && maxRank == null);
       return {
         exactMode,
+        exactField: exactFieldInput.value,
         exactQuery: rawInput.toLowerCase(),
         fuzzyTokenList,
         excluded,
@@ -672,9 +681,19 @@
           searchParts.push(credit?.creator?.name);
         }
       }
+      const roleNames = (role) =>
+        Array.isArray(level.levelCredits)
+          ? level.levelCredits
+              .filter((credit) => String(credit.role).toLowerCase() === role)
+              .map((credit) => credit?.creator?.name)
+              .filter(Boolean)
+          : [];
       return {
         search: normalizeText(searchParts.filter(Boolean).join(" ")),
         songRaw: [level.song, level.suffix].filter(Boolean).join(" ").toLowerCase(),
+        artistRaw: String(level.artist ?? "").toLowerCase(),
+        charterRaw: roleNames("charter").join(" ").toLowerCase(),
+        vfxerRaw: roleNames("vfxer").join(" ").toLowerCase(),
         diffId: level.diffId ?? ""
       };
     }
@@ -682,8 +701,15 @@
     function matchesFilters(meta, state) {
       if (state.diffRangeInvalid) return false;
       if (state.exactMode) {
-        if (state.exactQuery && !(meta.songRaw || "").includes(state.exactQuery)) {
-          return false;
+        if (state.exactQuery) {
+          const fieldMap = {
+            song: meta.songRaw || "",
+            artist: meta.artistRaw || "",
+            charter: meta.charterRaw || "",
+            vfxer: meta.vfxerRaw || ""
+          };
+          const haystack = fieldMap[state.exactField] ?? "";
+          if (!haystack.includes(state.exactQuery)) return false;
         }
       } else if (state.fuzzyTokenList.length) {
         const haystack = meta.search || "";
@@ -873,9 +899,18 @@
         if (!filterPanel.hidden) refreshFiltered();
       });
     }
+    function syncExactFieldVisibility() {
+      exactFieldInput.hidden = matchModeInput.value !== "exact";
+    }
+
     matchModeInput.addEventListener("change", () => {
+      syncExactFieldVisibility();
       if (!filterPanel.hidden) doSearch(1);
     });
+    exactFieldInput.addEventListener("change", () => {
+      if (!filterPanel.hidden) doSearch(1);
+    });
+    syncExactFieldVisibility();
 
     async function goToPage(targetPage) {
       const rendered = await doSearch(targetPage, { fresh: false });
